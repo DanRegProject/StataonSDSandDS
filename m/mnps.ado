@@ -1,8 +1,6 @@
 *! version 1.3.0  04apr2017
-cap program drop ashell
-cap program drop mnps
 program mnps, eclass sortpreserve
-syntax varlist(fv min=3),  objpath(string) [stopmethod(string) sampw(varname numeric) ntrees(integer 10000) intdepth(integer 3) shrinkage(real 0.01) permtestiters(integer 0) rcmd(string) estimand(string) treatatt(string) verbose(string) plotname(string)]
+syntax varlist(fv min=3),  objpath(string) [stopmethod(string) sampw(varname numeric) ntrees(integer 10000) intdepth(integer 3) shrinkage(real 0.01) permtestiters(integer 0) rcmd(string) estimand(string) treatatt(string) plotname(string)]
 
 * get current working dir
 local cwd `"`c(pwd)'"'
@@ -399,12 +397,8 @@ else {
 		file write myfile "treatATT = " "`treatatt'" "," _n
 	}
 }
-if "`verbose" == "" {
-	file write myfile "verbose = FALSE" _n
-}
-	else {
-	file write myfile "verbose = `verbose'" _n
-}
+
+file write myfile "verbose = FALSE" _n
 file write myfile ")" _n _n
 
 file write myfile "baltab<-bal.table(mnps1, collapse.to=" _char(34) "pair" _char(34) ")" _n
