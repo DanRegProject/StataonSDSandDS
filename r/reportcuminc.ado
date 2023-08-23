@@ -1,9 +1,3 @@
-/* SVN header
-$Date: 2023-06-27 11:20:17 +0200 (ti, 27 jun 2023) $
-$Revision: 343 $
-$Author: wnm6683 $
-$Id: reportCuminc.ado 343 2023-06-27 09:20:17Z wnm6683 $
-*/
 /********************************************************************************
                                         #+NAME        : reportCuminc.ado;
                                         #+TYPE        : Stata file;
@@ -16,12 +10,12 @@ $Id: reportCuminc.ado 343 2023-06-27 09:20:17Z wnm6683 $
 capture program drop reportCuminc
 program define reportCuminc, rclass
 version 13.0
-syntax anything [if] , ENDpoints(string)  Time(numlist) [BY(string) survival format(string) saving(string) sorting(string) append fewdata(string) id(string)]
+syntax anything [if] , ENDpoints(string)  Time(numlist) [BY(string) survival byformat(string) format(string) saving(string) sorting(string) replace fewdata(string)]
 tokenize `anything'
 loc CIstub `1'
 loc byby
 local nt = wordcount("`time'")
-if "`fewdata'"=="" loc  fewdata $fewdata
+if "`fewdata'"=="" loc fewdata $fewdata
 
 if "`format'"=="" loc format %4.3f
 tempfile store CItab
@@ -30,6 +24,14 @@ qui save `store', replace
 * label val $BRGP $BRGP
 qui if "`if'"!="" keep if `if'
 loc first 1
+
+if "`saving'" != ""{
+	
+	cap frame drop results
+	frame create results str256(By endpoints) double(time risk ci lower upper) 
+}
+
+
 dis "" _n(2)
 dis " Estimated Cumulated incidence "
 dis `"| `by' |Endpoint | Time | At Risk | CI | 95%CI |"'
@@ -55,50 +57,63 @@ if "`by'"!=""{
 	*noi codebook `byvar'
 	capture encode `byvar', gen(`catby')
 
-	if _rc == 0{
+	if _rc==0 {
 		drop `byvar'
 		rename `catby' `byvar'
+
 	}
-	capture confirm numeric variable `byvar'
-	if !_rc{
+         capture confirm numeric variable `byvar'
+        if !_rc {
 			cap decode `byvar', g(`catby')
 			if _rc!=0 cap tostring `byvar', g(`catby')
 			}
-	else gen `catby' = `byvar'
+        else gen `catby' = `byvar'
 	drop `byvar'
-	rename `catby' `byvar'
+        rename `catby' `byvar'
 }
 	else{
-			gen `byvar' = ""
+		gen `byvar' = ""
 	}
+
 }
 foreach e in `endpoints' {
 	qui{
 		preserve
-			if "`sorting'" == ""{
-				sort `byvar' `CIstub'`e'time
-			}
-			else{
-				sort `sorting'
-			}
+				if "`sorting'" == ""{
+					sort `byvar' `CIstub'`e'time
+				}
+				else{
+					sort `sorting'
+				}
+                foreach tc of numlist 1/`nt'{
+                    local t = word("`time'",`tc')
+                    `byby' egen __atRisk`tc' = count(`CIstub'`e'time) if `t'<= `CIstub'`e'time
+					/* lav lokale variable der indeholder antal at risk til de forskellige tidspunkter */
 
-        foreach tc of numlist 1/`nt' {
-			local t =word("`time'",`tc')
-			`byby' egen __atRisk`tc' = count(`CIstub'`e'time) if `t'<= `CIstub'`e'time
+
 		}
 		/* add one to get `nby' * `nt' new observations */
 		cap drop last
 		cap drop newobs
 		`byby' generate last = (_n==_N)
-		expand 2 if last == 1, generate(newobs)
+		expand 2 if last==1, generate(newobs)
 		expand `nt' if newobs == 1
+		/*
+		if "`sorting'" == ""{
+			sort `byvar' `CIstub'`e'time
+		}
+		else{
+			sort `sorting'
+		}
+		*/
+
 		if "`sorting'" == ""{
 			sort `byvar' `CIstub'`e'time newobs
 		}
 		else{
 			sort `sorting' newobs
 		}
-		`byby' gen rownum = sum(newobs)
+                `byby' gen rownum = sum(newobs)
 		gen atRisk = 0
 		gen CItime = 0
 		replace `CIstub'`e' = 0 if newobs == 1
@@ -107,7 +122,8 @@ foreach e in `endpoints' {
 			replace CItime = `t' if rownum == `tc'
 			replace `CIstub'`e'time = `t' if rownum == `tc'
 			replace atRisk = __atRisk`tc' if rownum == `tc'
-			}
+		}
+
 		if "`sorting'" == ""{
 			sort `byvar' `CIstub'`e'time rownum
 		}
@@ -116,87 +132,91 @@ foreach e in `endpoints' {
 		}
 
 		keep if `e'Status==1 & !missing(`CIstub'`e'time) | newobs == 1
+
 *		cap drop `time'
-*		list `by' `CIstub'`e'* __atRisk*
-
+*		sort `by' `CIstub'`e'time
 		gen `keepflag' = 0
+
 		*gen CItime=0
-         *       gen atRisk=0
-        foreach tc of numlist 1/`nt' {
-			replace `keepflag' = 0
-			cap drop `keepflagsum' `keepflagmax'
-            local t =word("`time'",`tc')
-			`byby' replace `keepflag' = 1 if (`CIstub'`e'time <= `t' & newobs == 0)
-			`byby' gen `keepflagsum' = sum(`keepflag') if newobs == 0
-			`byby' egen `keepflagmax' = max(`keepflagsum') if newobs == 0
-			`byby' replace `keepflagmax' = 0 if `keepflagmax'[_n-1] == `keepflagsum'[_n-1]
+		*gen atRisk=0
+		foreach tc of numlist 1/`nt'{
+				replace `keepflag' = 0
+				cap drop `keepflagsum' `keepflagmax'
+
+				local t = word("`time'",`tc')
+                    *`byby' replace `keepflag' =1 if (_n==1 & `t'<= `CIstub'`e'time)
+                        *`byby' replace `keepflag' =1 if (_n>1 & _n<_N & `CIstub'`e'time[_n-1]<`t' & `t'<=`CIstub'`e'time)
+						`byby' replace `keepflag' = 1 if (`CIstub'`e'time <= `t') & newobs == 0
+						`byby' gen `keepflagsum' = sum(`keepflag') if newobs == 0
+						`byby' egen `keepflagmax' = max(`keepflagsum') if newobs == 0
+						`byby' replace `keepflagmax' = 0 if `keepflagmax'[_n-1] == `keepflagsum'[_n-1]
+						/* hvis der ikke er events mellem to FUP tider sættes FUP tideren til den forige observation startende fra toppen */
+						`byby' replace `CIstub'`e' = `CIstub'`e'[_n-1] if `keepflagsum'[_n-1] == `keepflagmax'[_n-1] | newobs[_n] == 1
+						`byby' replace `CIstub'`e'hi = `CIstub'`e'hi[_n-1] if `keepflagsum'[_n-1] == `keepflagmax'[_n-1] | newobs[_n] == 1
+						`byby' replace `CIstub'`e'lo = `CIstub'`e'lo[_n-1] if `keepflagsum'[_n-1] == `keepflagmax'[_n-1] | newobs[_n] == 1
+						*save F:\Projekter\FSEID00002177\t2177_009_LM_ERISTA_VHD_LOWSCORE\tempdata\Stata\testdata.dta, replace
+                        *`byby' replace `keepflag' =1 if (_n==_N & _N>1 & `CIstub'`e'time[_n-1]<`t')
+					*`byby' replace CItime =`t' if (_n==1 & `t'<= `CIstub'`e'time)
+                        *`byby' replace CItime =`t' if (_n>1 & _n<_N & `CIstub'`e'time[_n-1]<`t' & `t'<=`CIstub'`e'time)
+                        *`byby' replace CItime =`t' if (_n==_N & _N>1 & `CIstub'`e'time[_n-1]<`t')
+                        *`byby' replace atRisk =__atRisk`tc' if (_n==1 & `t'<= `CIstub'`e'time)
+                        *`byby' replace atRisk =__atRisk`tc' if (_n>1 & _n<_N & `CIstub'`e'time[_n-1]<`t' & `t'<=`CIstub'`e'time)
+                        *`byby' replace atRisk =__atRisk`tc' if (_n==_N & _N>1 & `CIstub'`e'time[_n-1]<`t')
+		}
 
 
-			`byby' replace  `CIstub'`e' = `CIstub'`e'[_n-1] if `keepflagsum'[_n-1] == `keepflagmax'[_n-1] | newobs == 1
-			`byby' replace  `CIstub'`e'hi = `CIstub'`e'hi[_n-1] if `keepflagsum'[_n-1] == `keepflagmax'[_n-1] | newobs == 1
-			`byby' replace  `CIstub'`e'lo = `CIstub'`e'lo[_n-1] if `keepflagsum'[_n-1] == `keepflagmax'[_n-1] | newobs == 1
-
-            *`byby' replace `keepflag' =1 if (_n==1 & `t'<= `CIstub'`e'time)
-			*`byby' replace `keepflag' =1 if (_n>1 & _n<_N & `CIstub'`e'time[_n-1]<`t' & `t'<= `CIstub'`e'time)
-			*`byby' replace `keepflag' =1 if (_n==_N & _N>1 & `CIstub'`e'time[_n-1]<`t' )
-			*`byby' replace CItime =`t' if (_n==1 & `t'<= `CIstub'`e'time)
-			*`byby' replace CItime =`t' if (_n>1 & _n<_N & `CIstub'`e'time[_n-1]<`t' & `t'<= `CIstub'`e'time)
-			*`byby' replace CItime =`t' if (_n==_N & _N>1 & `CIstub'`e'time[_n-1]<`t' )
-			*`byby' replace atRisk = __atRisk`tc' if (_n==1 & `t'<= `CIstub'`e'time)
-			*`byby' replace atRisk = __atRisk`tc' if (_n>1 & _n<_N & `CIstub'`e'time[_n-1]<`t' & `t'<= `CIstub'`e'time)
-			*`byby' replace atRisk = __atRisk`tc' if (_n==_N & _N>1 & `CIstub'`e'time[_n-1]<`t' )
-        }
 		keep if newobs == 1
+
 		keep `by' CItime `CIstub'`e'* `byvar' atRisk
+
         replace atRisk=0 if missing(atRisk)
-*list
+		replace `CIstub'`e' = 0 if missing(`CIstub'`e') /* hvis der ikke er nogen observationer inden første FUP time sættes disse til 0 */
+		*save F:\Projekter\FSEID00002177\t2177_009_LM_ERISTA_VHD_LOWSCORE\tempdata\Stata\testdata.dta, replace
 		cap duplicates drop
+		if _rc==0 {
+                    if "`survival'"=="survival"{
+			replace `CIstub'`e' = 1- `CIstub'`e'
+			replace `CIstub'`e'hi = 1- `CIstub'`e'lo
+			replace `CIstub'`e'lo = 1- `CIstub'`e'hi
+                    }
+                    gen Endpoint = "`e'"
+                    qui count
+                    loc N=r(N)
 
-        if _rc == 0{
-			if "`survival'"=="survival"{
-				replace `CIstub'`e' = 1- `CIstub'`e'
-				replace `CIstub'`e'hi = 1- `CIstub'`e'lo
-				replace `CIstub'`e'lo = 1- `CIstub'`e'hi
-			}
-			gen Endpoint = "`e'"
-			qui count
-			loc N=r(N)
+                    foreach i of numlist 1/`N'{
+                        if atRisk[`i']==0 | atRisk[`i']>=`fewdata' noi dis " | " `byformat' `byvar'[`i'] " |  `e' | " CItime[ `i'] " | "  atRisk[`i'] " | " `format' `CIstub'`e'[`i'] " | ("  `format' `CIstub'`e'lo[`i'] "-" `format' `CIstub'`e'hi[`i'] ") |"
+						
+						if "`saving'" != ""{
+							if atRisk[`i']==0{
+								frame post results (`byvar'[`i']) ("`e'") (CItime[ `i']) ( atRisk[`i']) (`CIstub'`e'[`i']) (`CIstub'`e'lo[`i']) (`CIstub'`e'hi[`i'])
+							}
+						}
+						
+                        if atRisk[`i']>0 & atRisk[`i']<`fewdata' noi dis " | " `byformat' `byvar'[`i'] " |  `e' | " CItime[ `i'] " | <`fewdata' | " `format' `CIstub'`e'[`i'] " | ("  `format' `CIstub'`e'lo[`i'] "-" `format' `CIstub'`e'hi[`i'] ") |"
+                    }
+                }
 
-
-			foreach i of numlist 1/`N'{
-			if atRisk[`i']==0 | atRisk[`i']>= `fewdata' noi	dis " | " `byvar'[`i'] " |  `e' | " CItime[`i'] " | "  atRisk[`i'] " | " `format' `CIstub'`e'[`i'] " | ("  `format' `CIstub'`e'lo[`i'] "-" `format' `CIstub'`e'hi[`i'] ") |"
-			if atRisk[`i']>0 & atRisk[`i']< `fewdata' noi	dis " | " `byvar'[`i'] " |  `e' | " CItime[`i'] " |   <`fewdata'  | " `format' `CIstub'`e'[`i'] " | ("  `format' `CIstub'`e'lo[`i'] "-" `format' `CIstub'`e'hi[`i'] ") |"
-			}
-			if "`saving'" != ""{
-				gen file = "`id'"
-				gen `CIstub'=`CIstub'`e'
-				gen `CIstub'lo=`CIstub'`e'lo
-				gen `CIstub'hi=`CIstub'`e'hi
-				drop `CIstub'`e'* `by'
-                                if "`by'"!="" rename `byvar' level
-                                if "`by'"!="" gen by = "`by'"
-				if `first'==0 append using `CItab'
-				save `CItab', replace
-			}
-        }
 		loc first 0
 		restore
 	}
 }
 if "`saving'" != ""{
-		cap confirm file `saving'
-		if _rc!=0 | "`append'" != "append"{
-			use  `CItab', clear
+    if "`replace'" =="replace"{
+        frame results : save `saving'.dta, replace
+    }
+    else{
+		cap confirm file `saving'.dta
+		if _rc == 0{
+			frame results : save `CItab', replace
+			use `saving', clear
+			merge 1:1 By endpoints time using `CItab', nogenerate
+			save `saving'.dta, replace	
 		}
 		else{
-				use  `saving', clear
-				append using `CItab'
-
-				/*remove duplicate observations*/
-				duplicates drop
-			}
-    	save `saving', replace
+			frame results : save `saving'.dta, replace
+		}
+		
+    }
 }
-
 use `store', clear
 end

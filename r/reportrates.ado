@@ -1,8 +1,8 @@
 /* SVN header
-$Date: 2020-06-25 11:05:37 +0200 (to, 25 jun 2020) $
-$Revision: 232 $
-$Author: fflb6683 $
-$Id: reportRates.ado 232 2020-06-25 09:05:37Z fflb6683 $
+$Date: 2020-03-30 10:16:52 +0200 (ma, 30 mar 2020) $
+$Revision: 229 $
+$Author: fskMarJen $
+$ID: $
 */
 /********************************************************************************
                                         #+NAME        : reportRates.ado;
@@ -16,7 +16,7 @@ $Id: reportRates.ado 232 2020-06-25 09:05:37Z fflb6683 $
 capture program drop reportRates
 program define reportRates, rclass
 version 13.0
-syntax [if], using(string) [strata(string) by(string) format(string) sorting(string) fewdata(string)]
+syntax [if], using(string)   [by(string) strata(string) format(string) sorting(string) fewdata(string)]
 tempfile store
 tempvar sstrata one
 qui save `store' , replace
@@ -25,15 +25,17 @@ if "`if'"!="" keep if `if'
 if "`format'"=="" loc format %6.2f
 if "`fewdata'"=="" loc fewdata $fewdata
 if "`by'"==""{
-    loc by `one'
-    gen `one'=1
+  loc by `one'
+  gen `one'=1
 }
 if "`strata'"=="" loc strata strata
 if "`sorting'" == ""{
-	
+	sort `by' analysis Endpoint `strata'
 }
-sort `by' Endpoint `strata'
-capture confirm numeric variable `strata'
+else{
+	sort `sorting'
+}
+ capture confirm numeric variable `strata'
 if !_rc decode `strata', g(`sstrata')
 else gen `sstrata' = `strata'
 qui count
@@ -56,7 +58,7 @@ foreach i of numlist 1/`N'{
             `format' _Y[`i'] " | " `format' _Rate[`i'] " | (" `format' _Lower[`i'] "-" `format' _Upper[`i'] ") |"
     }
     if  `i'>1{
-        if "`by'"!="`one'" & `by'[`i']!= `by'[`i'+1] loc shift 1
+        if "`by'"!="`one'"  & `by'[`i']!= `by'[`i'+1] loc shift 1
     }
 }
 use `store', clear

@@ -1,3 +1,9 @@
+/* SVN header
+$Date: 2018-04-04 14:12:01 +0200 (on, 04 apr 2018) $
+$Revision: 76 $
+$Author: fskJetNot $
+$ID: $
+*/
 {smcl}
 {* *! version 1.0  5 Feb 2018}{...}
 {vieweralsosee "" "--"}{...}

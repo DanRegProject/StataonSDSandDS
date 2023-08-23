@@ -1,8 +1,8 @@
 /* SVN header
-$Date: 2021-12-21 13:21:33 +0100 (ti, 21 dec 2021) $
-$Revision: 319 $
-$Author: wnm6683 $
-$Id: reportHR.ado 319 2021-12-21 12:21:33Z wnm6683 $
+$Date: 2021-12-21 13:23:01 +0100 (ti, 21 dec 2021) $
+$Revision: 429 $
+$Author: fskFleSkj $
+$ID: $
 */
 /********************************************************************************
                                         #+NAME        : reportHR.ado;
@@ -16,7 +16,7 @@ $Id: reportHR.ado 319 2021-12-21 12:21:33Z wnm6683 $
 capture program drop reportHR
 program define reportHR, rclass
 version 13.0
-syntax [if] , using(string) [ by(string) evalue notrare format(string) sorting(string)]
+syntax [if] , using(string) [ by(string) evalue notrare format(string) sorting(string) ]
 tempfile store
 tempvar sstrata
 qui save `store', replace
@@ -60,7 +60,7 @@ if "`evalue'"!=""{
 foreach i of numlist 1/`N'{
     if `shift'==1{
         dis "" _n(2)
-        if "`by'" !=""         dis "`by' : " `by'[`i'] " "
+       if "`by'"!="" dis "`by' : " `by'[`i'] " "
         dis "| Analysis | FUP | Endpoint | Exposure | level | HR | 95%CI | p-value `evalhead1'|"
         dis "|----------+-----|----------+----------+-------+----+-------|---------`evalhead2'|"
         loc shift 0
@@ -68,9 +68,9 @@ foreach i of numlist 1/`N'{
 if "`evalue'"=="" dis "| " analysis[`i'] " | " FUP[`i'] " | " Endpoint[`i'] "| " exposure[`i'] " | " level[`i'] " | " ///
               `format' HR[`i'] " | (" `format' HRl[`i'] "-" `format' HRu[`i'] ") |" %6.4f pval[`i'] " | "
 else dis "| " analysis[`i'] " | " FUP[`i'] " | " Endpoint[`i'] "| " exposure[`i'] " | " level[`i'] " | " ///
-               `format' HR[`i'] " | (" `format' HRl[`i'] "-" `format' HRu[`i'] ") |" %6.4f pval[`i'] " | " `format' Eval[`i'] " | " `format' EvalLow[`i'] " |"
+               `format' HR[`i'] " | (" `format' HRl[`i'] "-" `format' HRu[`i'] ") |" `format' Eval[`i'] " | " %6.4f pval[`i'] " | " `format' EvalLow[`i'] " |"
     if `i'>1{
-        if "`by'" !=""         if `by'[`i'] != `by'[`i'+1] loc shift 1
+      if "`by'"!=""  if `by'[`i'] != `by'[`i'+1] loc shift 1
       }
   }
 use `store', clear

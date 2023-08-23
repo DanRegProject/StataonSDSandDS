@@ -1,8 +1,8 @@
 /* SVN header
-$Date: 2018-08-03 11:33:06 +0200 (fr, 03 aug 2018) $
-$Revision: 118 $
-$Author: FCNI6683 $
-$Id: reportRates.sthlp 118 2018-08-03 09:33:06Z FCNI6683 $
+$Date: 2018-04-04 14:12:01 +0200 (on, 04 apr 2018) $
+$Revision: 76 $
+$Author: fskJetNot $
+$ID: $
 */
 {smcl}
 {* *! version 1.0  5 Feb 2018}{...}
