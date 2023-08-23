@@ -184,15 +184,15 @@ if "`columnvar'" == ""{
 	if "`Pmain'" == "" file write myfile "Pmain<-" _char(34) "`Pmain'" _char(34) "  " _n
 }
 if "`plab'" != ""{
-    tokenize `plab', parse(`sep')
-    if "`sep'" ==""{
-		file write myfile "Plab1 <-c(" _char(34) "`1'" _char(34) "," _char(34) "`3'" _char(34) ")" _n
-		file write myfile "Plab2 <-c(" _char(34) "`2'" _char(34) "," _char(34) "`4'" _char(34) ")" _n
-                }
-    if "`sep'" !=""{
-		file write myfile "Plab1 <-c(" _char(34) "`1'" _char(34) "," _char(34) "`5'" _char(34) ")" _n
-		file write myfile "Plab2 <-c(" _char(34) "`3'" _char(34) "," _char(34) "`7'" _char(34) ")" _n
-                }
+		tokenize `plab', parse(`sep')
+		if "`sep'"==""{
+		   file write myfile "Plab1 <-c(" _char(34) "`1'" _char(34) "," _char(34) "`3'" _char(34) ")" _n
+		   file write myfile "Plab2 <-c(" _char(34) "`2'" _char(34) "," _char(34) "`4'" _char(34) ")" _n
+		}
+		if "`sep'"!=""{
+		   file write myfile "Plab1 <-c(" _char(34) "`1'" _char(34) "," _char(34) "`5'" _char(34) ")" _n
+		   file write myfile "Plab2 <-c(" _char(34) "`3'" _char(34) "," _char(34) "`7'" _char(34) ")" _n
+		}
 }
 
 if "`xlim'" == ""{
@@ -275,7 +275,7 @@ if "`hadj'" != ""{
 	tokenize `hadj',/* parse(`sep')*/
 	loc i=1
 	while `"`1'"' != ""{
-		/*if "`1'"!="`sep'"*/ file write myfile "   Hadj[[`i']] <- c(`1') " _n
+		file write myfile "   Hadj[[`i']] <- c(`1') " _n
 		macro shift
 		loc i `++i'
 	}
@@ -344,9 +344,9 @@ file write myfile " , ppos=Ppos " _n
 file write myfile " , xlim=Xlim " _n
 file write myfile " , hadj=Hadj " _n
 if "`xseqn'" != ""{
-    local xseqn = subinstr("`xseqn'"," ",",",.)
-    file write myfile ", seqn=c(`xseqn') " _n
-    }
+   local xseqn = subinstr("`xseqn'"," ",",",.)
+   file write myfile ", seqn=c(`xseqn') " _n
+}
 if "`sublabelside'" != "" file write myfile ", mside=`sublabelside' " _n
 if "`vref'" != "" file write myfile ", vref=`vref' " _n
 if "`cutx'" != "" file write myfile ", cutx=`cutx' " _n
@@ -471,5 +471,4 @@ else{
 }
 
 end
-
 

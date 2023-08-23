@@ -1,7 +1,7 @@
 /********************************************************************************
                                         #+NAME        : genFG.ado;
                                         #+TYPE        : Stata file;
-                                        #+DESCRIPTION : Generate FG subdistribution Hazard rates
+                                        #+DESCRIPTION : Generate FG subdist HR rates
                                         #+OUTPUT      :;
                                         #+AUTHOR      : Flemming Skjøth;
                                         #+CHANGELOG   :Date       Initials Status:
@@ -12,19 +12,19 @@ program define genFG, rclass
 version 13.0
 syntax [iweight aweight pweight fweight], ENDPoints(string) compete(string) at(numlist) Origin(string) Enter(string) Scale(string) EXPosure(string) ///
     [SAVing(string) label(string) id(string) crregopt(string) ADJust(string) ref(string) show append estore headlev(string)]
-tempfile tmpcrreg indata
+tempfile tmpfg indata
 tempvar stopfup
-loc first 0
-save `indata', replace
+qui save `indata', replace
 
+loc first 0
 if "`append'"=="" loc first 1
 if "`id'"!="" loc id id(`id')
 if "`ref'"=="" loc ref 1
 if "`crregopt'"=="" loc crregopt nolog noshow
-if "`headlev'" == "" loc headlev **
-
+if  "`headlev'"=="" loc headlev **
 dis "`headlev' Fine & Gray sub-distribution regression model specification `label'"
 dis "- Endpoints: ~`endpoints'~"
+dis "- Competing events: ~`compete'~"
 dis "- Exposure or covariates of interest: ~`exposure'~"
 if "`adjust'"!=""{
     dis "- Covariates for adjustment: ~`adjust'~"
@@ -36,31 +36,35 @@ if "`weight'`exp'"!=""{
     dis "- Weight specification: ~`weight'`exp'~"
 }
 dis "- STSET setup: Origin: ~`origin'~, Enter: ~`enter'~, Timescaling: ~`scale'~, Exit: ~`at'~, Clusters (optional): ~[`id']~"
-dis "- STCRREG options: ~`crregopt'~"
+dis "- STCREG options: ~[`crregopt']~"
 
 
-if "`show'"=="show"  dis "`headlev' Fine & Gray Analysis : `label'" _n
+
+    if "`show'"=="show"  dis "`headlev' Fine & Gray Analysis : `label'" _n
 foreach e in `endpoints'{
-    if "`show'"=="show" {
-        dis "`headlev'* Endpoint `e' " _n
-    }
-    tempvar `e'Status `e'EndDate
-    gen ``e'Status' = `e'Status
-    gen ``e'EndDate' = `e'EndDate
-    loc ncomp 2
-    loc complist
-    foreach cv in `compete'{
-        loc complist = `complist' `ncomp'
-        replace ``e'Status'=`ncomp' if `cv'EndDate<``e'EndDate' & ``e'EndDate'<. & `cv'Status==1
-        replace ``e'Status'=`ncomp' if `cv'EndDate==``e'EndDate' & `cv'Status==1 & ``e'Status'==0
-        replace ``e'EndDate'=`cv'EndDate if ``e'Status'==`ncomp' & `cv'EndDate<``e'EndDate' & ``e'EndDate'<. & `cv'Status==1
-        loc ncomp = `ncomp' + 1
-    }
+        if "`show'"=="show" {
+            dis "`headlev'* Endpoint `e' " _n
+        }
+       qui{
+			tempvar `e'Status `e'EndDate
+			gen ``e'Status' = `e'Status
+			gen ``e'EndDate' = `e'EndDate
+			loc ncomp 2
+			loc complist
+			foreach cv in `compete'{
+				loc complist = `complist' `ncomp'
+				replace ``e'Status'=`ncomp' if  `cv'EndDate<``e'EndDate' & ``e'EndDate'<. &  `cv'Status==1
+				replace ``e'Status'=`ncomp' if  `cv'EndDate==``e'EndDate' & `cv'Status==1 & ``e'Status'==0
+				replace ``e'EndDate'=`cv'EndDate if ``e'Status'==`ncomp' & `cv'EndDate<``e'EndDate' & ``e'EndDate'<. &  `cv'Status==1
+				loc ncomp = `ncomp' + 1
+			}
+	}
     foreach t in `at'{
         $beginhide
         cap drop `stopfup'
         gen `stopfup' = `origin'+`t'*`scale'
-        stset ``e'EndDate'  [`weight'`exp'] if ``e'Status'<., failure(``e'Status'=1) origin(`origin') enter(`enter') scale(`scale') exit(`stopfup') `id'
+        stset ``e'EndDate'  [`weight'`exp'] if ``e'Status'<., failure(``e'Status'==1) origin(`origin') enter(`enter') scale(`scale') exit(`stopfup') `id'
+
         qui{
 				summarize _d
 				loc FAILS = `r(sum)'
@@ -77,8 +81,8 @@ foreach e in `endpoints'{
             dis "/Follow-up `t' year(s)/" _n
             dis "#+BEGIN_EXAMPLE"
         }
-        if wordcount("`exposure'") == 1 capture noisily stcrreg ib`ref'.`exposure' `adjust', compete(``e'Status'==`complist') `crregopt'
-        if wordcount("`exposure'") > 1 capture noisily stcrreg `exposure' `adjust', compete(``e'Status'==`complist') `crregopt'
+        if wordcount("`exposure'") == 1 capture noisily stcrreg ib`ref'.`exposure' `adjust', compete(``e'Status'== `complist') `crregopt'
+        if wordcount("`exposure'") > 1 capture noisily stcrreg `exposure' `adjust', compete(``e'Status'== `complist') `crregopt'
         if _rc==0{
             if "`estore'" != ""{
                 loc lab = subinstr("`label'`e'`t'"," ","",.)
@@ -106,9 +110,9 @@ foreach e in `endpoints'{
                     if _rc!=0 | `l'==`ref'{
                         loc head`l' : label (`exposure') `l'
                         loc sdHR`l' = .
-                                    loc sdHRl`l' = .
-                                                 loc sdHRu`l' = .
-                                                              }
+                        loc sdHRl`l' = .
+                        loc sdHRu`l' = .
+                    }
                 }
                 loc ngrp1 =`ngrp'-1
                 qui{
@@ -132,15 +136,16 @@ foreach e in `endpoints'{
                         loc row=`row'+1
                     }
                     if `first'==0 | "`append'"=="append" append using `saving'
-                    save `saving', replace
+                    qui save `saving', replace
                     loc first 0
                     restore
                 }
             }
-            $endhide
+        $endhide
         }
-        loc show `tempshow'
+		loc show `tempshow'
     }
 }
 use `indata', clear
+
 end

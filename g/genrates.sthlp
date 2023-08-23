@@ -1,9 +1,3 @@
-/* SVN header
-$Date: 2018-08-03 11:33:06 +0200 (fr, 03 aug 2018) $
-$Revision: 118 $
-$Author: FCNI6683 $
-$Id: genRates.sthlp 118 2018-08-03 09:33:06Z FCNI6683 $
-*/
 {smcl}
 {* *! version 1.0  5 Feb 2018}{...}
 {vieweralsosee "" "--"}{...}

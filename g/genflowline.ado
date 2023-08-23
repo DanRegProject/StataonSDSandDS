@@ -1,9 +1,3 @@
-/* SVN header
-$Date: 2018-08-03 11:33:06 +0200 (fr, 03 aug 2018) $
-$Revision: 118 $
-$Author: FCNI6683 $
-$Id: genFlowline.ado 118 2018-08-03 09:33:06Z FCNI6683 $
-*/
 /********************************************************************************
                                         #+NAME        : genFlowline.ado;
                                         #+TYPE        : Stata file;
@@ -25,6 +19,11 @@ if "`new'"=="new" {
     gl gl_flowline=100
 }
 if "`sameline'"=="" gl gl_flowline=$gl_flowline+1
+if "`sameline'"!=""{
+ local text $gl_flowtxt + `text'
+	replace `flowvar' = "$gl_flowline: `text'" if strpos(`flowvar',"$gl_flowtxt")>0
+ }
 replace `flowvar' = "$gl_flowline: `text'" if (`criterion') & `flowvar'=="OK"
+gl gl_flowtxt `text'
 display "Flowline $gl_flowline `text' is generated."
 end

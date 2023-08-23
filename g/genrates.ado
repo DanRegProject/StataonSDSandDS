@@ -1,15 +1,9 @@
-/* SVN header
-$Date: 2019-09-09 14:42:28 +0200 (ma, 09 sep 2019) $
-$Revision: 197 $
-$Author: wnm6683 $
-$Id: genRates.ado 197 2019-09-09 12:42:28Z wnm6683 $
-*/
 /********************************************************************************
                                         #+NAME        : genRates.ado;
                                         #+TYPE        : Stata file;
                                         #+DESCRIPTION : Generate incidence rates
                                         #+OUTPUT      :;
-                                        #+AUTHOR      : Flemming Skjøth;
+                                        #+AUTHOR      : Flemming SkjÂ¿th;
                                         #+CHANGELOG   :Date       Initials Status:
                                                        28.06.2017 FLS      Created;
                                                        07.08.2017 FLS      Multiline record support added
@@ -24,13 +18,13 @@ loc first 1
 *if "`append'"=="" loc first 1
 if "`id'"!="" loc id id(`id')
 if "`by'"==""{
-    loc by `one'
-    gen `one'= 1
+ loc by `one'
+ gen `one'=1
 }
 foreach e in `endpoints'{
+	if "`if'"!="" loc iff `if' & `e'EndDate<.
+	if "`if'"=="" loc iff if `e'EndDate<.
     foreach t in `at'{
-        if "`if'"!="" loc iff `if' & `e'EndDate<.
-        if "`if'"=="" loc iff if `e'EndDate<.
         $beginhide
         cap drop `stopfup'
         gen `stopfup' = `origin'+`t'*`scale'
@@ -51,25 +45,25 @@ foreach e in `endpoints'{
 }
 preserve
 qui{
-use `tmprate2', clear
-gen analysis = "`label'"
- loc cmd gen strata=
-*if "`append'"=="append" loc cmd replace strata=
-foreach v in `by'{
-    tempvar n_`v'
-    cap confirm numeric variable `v'
-    if !_rc{
-        cap decode `v', g(`n_`v'')
-        if _rc!=0 cap tostring `v', g(`n_`v'')
-    }
-    else gen `n_`v'' = `v'
-    loc cmd `cmd' `n_`v'' + " " +
-}
-`cmd' " "
-drop `by'
-if "`append'" != "" append using `saving'
-save `saving', replace
+    use `tmprate2', clear
+    gen analysis = "`label'"
+
+ loc cmd gen strata =
+* if "`append'"=="append" loc cmd replace strata =
+    foreach v in `by'{
+        tempvar n_`v'
+        capture confirm numeric variable `v'
+        if !_rc{
+            cap decode `v', g(`n_`v'')
+            if _rc!=0 cap tostring `v', g(`n_`v'')
+        }
+        else gen `n_`v'' = `v'
+        loc cmd `cmd' `n_`v'' + " " +
+        }
+    `cmd' " "
+    drop `by'
+    if "`append'"!="" append using `saving'
+    save `saving', replace
 }
 restore
-
 end

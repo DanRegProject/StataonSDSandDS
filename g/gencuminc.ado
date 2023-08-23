@@ -1,8 +1,8 @@
 /* SVN header
-$Date: 2022-02-18 09:53:59 +0100 (fr, 18 feb 2022) $
-$Revision: 325 $
-$Author: FANR6683 $
-$Id: genCuminc.ado 325 2022-02-18 08:53:59Z FANR6683 $
+$Date: 2022-03-23 10:53:41 +0100 (on, 23 mar 2022) $
+$Revision: 445 $
+$Author: fskFleSkj $
+$Id: genCuminc.ado 445 2022-03-23 09:53:41Z fskFleSkj $
 */
 /********************************************************************************
                                         #+NAME        : genCuminc.ado;
@@ -25,9 +25,9 @@ tempvar status eEndDate eStatus
 tempvar byvar
 qui{
     if "`id'"!="" loc id id(`id')
-    if "`by'"!="" {
+    if "`by'"!=""{
         tempvar byvar
-        egen `byvar' = group(`by'), label
+        egen `byvar' = group(`by'), missing
         loc by by(`byvar')
     }
     if "`endtime'"!=""{
@@ -49,43 +49,43 @@ qui{
             predict double `surv', basesurv
             predict double `xbeta', xb
             predict double `stdp', stdp
-            gen `CIstub'`e' = 1- `surv'^exp(`xbeta')
-            gen `CIstub'`e'hi = 1- `surv'^exp(`xbeta'-`stdp')
-            gen `CIstub'`e'lo = 1- `surv'^exp(`xbeta'+`stdp')
+            gen `CIstub'`e' = 1-`surv'^exp(`xbeta')
+            gen `CIstub'`e'hi = 1-`surv'^exp(`xbeta'-`stdp')
+            gen `CIstub'`e'lo = 1-`surv'^exp(`xbeta'+`stdp')
         }
         if lower("`type'")=="km"{
             stset `eEndDate' [`weight'`exp'] if !missing(`eStatus'), failure(`eStatus') origin(`origin') enter(`enter') scale(`scale') `id' `exit'
             gen `CIstub'`e'time=_t
-           /* if "`weight'"==""*/ loc ci `CIstub'`e'lo = lb `CIstub'`e'hi = ub
+            if "`weight'"=="" loc ci `CIstub'`e'lo = lb `CIstub'`e'hi = ub
             sts gen `CIstub'`e' = s `ci', `by'
-	        replace `CIstub'`e' = 1 - `CIstub'`e'
-            /*if "`weight'"==""{*/
+	    replace `CIstub'`e' = 1 - `CIstub'`e'
+            if "`weight'"==""{
                 gen `tmpcilo' = `CIstub'`e'lo
                 replace `CIstub'`e'lo = 1 - `CIstub'`e'hi
                 replace `CIstub'`e'hi = 1 - `tmpcilo'
                 drop `tmpcilo'
-            /*}
+            }
             if "`weight'"!=""{
                 gen `CIstub'`e'lo = .
                 gen `CIstub'`e'hi = .
-            }*/
+            }
         }
         if lower("`type'")=="stcompet" & "`compete'"!=""{
             cap drop `status'
             gen `status' = `eStatus'
             foreach c in `compete'{
                 replace `eStatus'=90 if `c'Status & `c'EndDate<`eEndDate'
-				replace `eStatus'=90 if `c'Status & `c'EndDate==`eEndDate' & `eStatus'==0
-                replace `eEndDate' = `c'EndDate if `c'Status & `c'EndDate<`eEndDate'
+				replace `eStatus'=90 if `c'Status & `c'EndDate==`eEndDate' &  `eStatus'==0
+                replace `eEndDate'=`c'EndDate if `c'Status & `c'EndDate<`eEndDate'
             }
             stset `eEndDate' [`weight'`exp'] if !missing(`eStatus'), failure(`eStatus'==1) origin(`origin') enter(`enter') scale(`scale') `id'
             gen `CIstub'`e'time=_t
-        /*    if "`weight'"==""*/ loc ci `CIstub'`e'lo = lo `CIstub'`e'hi = hi
+            if "`weight'"=="" loc ci `CIstub'`e'lo = lo `CIstub'`e'hi = hi
             stcompet `CIstub'`e'=ci  `ci', compet(90) `by'
-        /*    if "`weight'"!=""{
+            if "`weight'"!=""{
                 gen `CIstub'`e'lo = .
                 gen `CIstub'`e'hi = .
-            } */
+            }
             replace `CIstub'`e'=. if `eStatus' != 1
             replace `CIstub'`e'lo=. if `eStatus' != 1
             replace `CIstub'`e'hi=. if `eStatus' != 1
@@ -97,6 +97,7 @@ qui{
             }
             if "`by'"==""{
                 local byvalue 0
+                cap drop `byvar'
                 gen `byvar'=0
             }
             tempvar order
@@ -111,14 +112,19 @@ qui{
                 tempvar compet
 *                gen `status' = `eStatus'
                 gen `compet' = 0
-                loc ncomp 1
-                foreach cv in `compete'{
-                    replace `compet'=`ncomp' if  `cv'EndDate<`eEndDate' & `cv'Status==1
-                    replace `compet'=`ncomp' if  `cv'EndDate==`eEndDate' & `cv'Status==1 & `eStatus'==0
-                    replace `eStatus'=0 if `compet'==`ncomp' & `cv'EndDate<`eEndDate' & `cv'Status==1
-                    replace `eEndDate'=`cv'EndDate if `compet'==`ncomp' & `cv'EndDate<`eEndDate' & `cv'Status==1
+            loc ncomp 1
+            foreach cv in `compete'{
+                replace `compet'=`ncomp' if  `cv'EndDate<`eEndDate' & `cv'Status==1
+                replace `compet'=`ncomp' if  `cv'EndDate==`eEndDate' & `cv'Status==1 & `eStatus'==0
+                replace `eStatus'=0 if `compet'==`ncomp' & `cv'EndDate<`eEndDate' & `cv'Status==1
+                replace `eEndDate'=`cv'EndDate if `compet'==`ncomp' & `cv'EndDate<`eEndDate' & `cv'Status==1
+                * loc ncomp = `ncomp' + 1
+            }
+/*                foreach c in `compete'{
+                    replace `compet'=1 if `c'Status & `c'EndDate<`eEndDate'
                 }
-                stset `eEndDate' [`weight'`exp'] if !missing(`eStatus'), failure(`eStatus'==1) origin(`origin') enter(`enter') scale(`scale') `id'
+*/
+    stset `eEndDate' [`weight'`exp'] if !missing(`eStatus'), failure(`eStatus'==1) origin(`origin') enter(`enter') scale(`scale') `id'
                 gen `CIstub'`e'time=_t
                 stcuminc `compet', generate(`CIstub'`e')
                 gen `CIstub'`e'lo = .
