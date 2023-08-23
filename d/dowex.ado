@@ -25,9 +25,9 @@ end
     /* 'type' should be pdf, html (defaults to html) */
 cap pr drop dowex
 pr de dowex
-syntax [, Emacs(string) File(string) Type(string)]
-if "`s(dowerc)'"!="0" {
-	di as err "Last call do dowe failed"
+syntax [, Emacs(string) File(string) Type(string) force]
+if("`s(dowerc)'"!="0" & "`force'"!="force") {
+	di as err "Last call to dowe failed"
 	exit 100
     }
 if("`file'"=="") {
@@ -59,9 +59,8 @@ if(r(suffix)!=".org") {
     di as err "file `file' is not an .org-file"
     exit 100
 }
-if "`type'"!="pdf" loc funcall org-export-as-`type'
-if "`type'"=="pdf" loc funcall org-latex-export-to-`type'
-if "`type'"=="html" loc funcall org-html-export-to-html
+if "`type'" == "pdf" loc funcall org-latex-export-to-`type'
+if "`type'" == "html" loc funcall org-html-export-to-html
 
 tempfile mylog
 di as txt "Exporting ..." _n
@@ -69,7 +68,6 @@ shell "`emacs'" --batch --visit="`file'" --funcall `funcall' 2> "`mylog'"
 file open fh using "`mylog'", read
 file read fh line
 while r(eof)==0 {
-    loc line = subinstr(`"`line'"',char(34),"",.)
     display " `line'"
     file read fh line
 }

@@ -14,21 +14,23 @@ if(`c(noisily)'==0) {
 	di as err "dowe cannot run quietly"
 	exit 100
 }
-if "`append'"!="" {
-    if "`s(dowerc)'"!="0" {
-	di as err "Last call do dowe failed"
+if("`append'"!="") {
+    if("`s(dowerc)'"!="0") {
+	di as err "Last call to dowe failed"
 	exit
     }
 }
 tempfile dobuf /* do file */
 tempfile logbuf1 /* raw log file */
 tempfile logbuf2 /* clean log file */
-             cap noi mata:dowe()/* capture errors */
+cap noi mata:dowe()/* capture errors */
+
 loc rc = _rc
+
 if(_rc != 0) {
-    cap mata:cleanup()/* close files if errors*/
-            dis as err "Something in org-file `infile' caused an error"
+	cap mata:cleanup()/* close files if errors*/
+        dis as err "Something in the org-file `infile' caused an error"
 }
 sret local doweout = "`outfile'"/* remember output file name */
 sret local dowerc = "`rc'"
-end
+    end
