@@ -1,9 +1,3 @@
-/* SVN header
-$Date: 2022-07-11 11:57:13 +0200 (ma, 11 jul 2022) $
-$Revision: 338 $
-$Author: wnm6683 $
-$Id: table1.ado 338 2022-07-11 09:57:13Z wnm6683 $
-*/
 /*
  ***********************************************************************************************;
    #+NAME          :  table1.ado;
@@ -28,12 +22,11 @@ if ("`ntest'"!="0"){
  exit 100
 }
 tempfile savemydata
-qui save `savemydata', replace
 loc outrow 0
+qui save `savemydata', replace
 if _by(){
-	qui keep if `_byindex'==_byindex()
+	qui keep if `_byindex'== _byindex()
 }
-
 if "`if'" != "" qui keep `if'
 if "`sep'"=="" loc sep char(124)
 if "`test'"=="" loc test FALSE
@@ -49,8 +42,9 @@ if (("`test'" != "TRUE" & "`test'" != "FALSE") | ("`balance'" != "TRUE" & "`bala
     dis as err "Only TRUE or FALSE valid for test and balance options"
  exit 100
 }
-if "`missing'"=="nomissing" loc missing
-if (`q'<0 | `q'>1) {
+
+if "`missing'"=="nomissing" loc missing 
+if (`q'<0 | `q'>1){
     dis as err "Quantile specification out of limit [0,1] : q=`q'"
     exit 100
 }
@@ -77,11 +71,14 @@ if "`by'"!=""{
     qui levelsof `by', local(grp)
     loc ngrp : word count `grp'
 }
-if "`if'" != "" dis `"Table generated with population restriction: ~`if'.~"'
-if "`weight'`exp'" != "" dis `"Table generated with weight instruction: ~`weight'`exp'.~"'
+
+if "`if'" != ""  dis `"Table generated with population restriction:  ~`if'.~"'
+
+if "`weight'`exp'" != "" dis `"Table generated with weight instruction:  ~`weight'`exp'.~"'
+
 if "`landscape'"=="landscape" dis "#+LATEX: \begin{landscape}"
 if "`size'"!="" dis "#+LATEX: {\\`size' "
-loc i=-1
+    loc i=-1
 foreach x in head N `BVARloc'{
     loc fewdataflag=0
     loc first=1
@@ -95,7 +92,7 @@ foreach x in head N `BVARloc'{
                 drop `x'
                 rename `catx' `x'
             }
-            qui levelsof `x', local(levels)
+            qui levelsof `x', local(levels) `missing'
             loc nlevels : word count `levels'
         }
     }
@@ -127,27 +124,30 @@ foreach x in head N `BVARloc'{
               }
           /* N line */
               if(`i'==0){
-                  if (`first'==1){
-                      loc row `sep' "N" `sep' `sep'
-                      loc erow `sep' "N" `sep' `sep'
-                      loc srow  N `sep' `sep'
-                      loc esrow  N `sep' `sep'
-                  }
+                  if (`first'==1) loc row `sep' "N" `sep' `sep'
+                  if (`first'==1) loc erow `sep' "N" `sep' `sep'
+                  if (`first'==1) loc srow  N `sep' `sep'
+                  if (`first'==1) loc esrow  N `sep' `sep'
                   qui count
                   loc n = r(N)
                   if 0<`n' & `n'<`fewdata' loc fewdataflag 1
-                  if 0<`n' & `n'<`fewdata' loc row `row' "- (<`fewdata')" `sep'
-                  if 0==`n' | `n'>=`fewdata' loc row `row' %4.0f `=`n'' `sep'
-                  loc erow `erow' "- (<`fewdata')" `sep'
-                  loc srow `srow' `sep' `=`n'' `sep' `sep' `sep' `sep'
-                  loc esrow `esrow' `sep' "." `sep' `sep' `sep' `sep'
+
+					  if 0<`n' & `n'<`fewdata' loc row `row' "<`fewdata'" `sep'
+					  if 0==`n' | `n'>=`fewdata' loc row `row' %4.0f `=`n'' `sep'
+					  loc erow `erow' "<`fewdata'" `sep'
+					  loc srow `srow' `sep' `=`n'' `sep' `sep' `sep' `sep'
+					  loc esrow `esrow' `sep' "." `sep' `sep' `sep' `sep'
+
               }
           if(`i'>0){
               loc nm ="`x'"
+			  /* add table names */
 			  global truename `nm'
 			  if "`varnames'" == "varnames"{
-				tablesnames `nm', outdir($LocalOutDir)
+				tablenames `nm', outdir($LocalOutDir)
 			  }
+			  /* end of table names */
+
               if `i'==1{
                   loc _mu`gi'
                   loc _sd`gi'
@@ -178,11 +178,13 @@ foreach x in head N `BVARloc'{
                           loc srow $truename `sep' `sep'
                           loc esrow `srow'
                       }
-                      if 0<`n' & `n'<`fewdata' loc row `row' "- (<`fewdata')" `sep'
-                      if 0==`n' | `n'>=`fewdata' loc row `row' %3.1f `=`m' *100' " (" %1.0f `=`n'' ")" `sep'
-                      loc erow `erow' "- (<`fewdata')" `sep'
-                      loc srow `srow' `=`m' *100' `sep' `=`n'' `sep' `sep' `sep' `sep'
-                      loc esrow `esrow' " . " `sep' " . " `sep' `sep' `sep' `sep'
+
+						if 0<`n' & `n'<`fewdata' loc row `row' "- (<`fewdata')" `sep'
+						if 0==`n' | `n'>=`fewdata' loc row `row' %3.1f `=`m' *100' " (" %1.0f `=`n'' ")" `sep'
+						loc erow `erow' "- (<`fewdata')" `sep'
+						loc srow `srow' `=`m' *100' `sep' `=`n'' `sep' `sep' `sep' `sep'
+						loc esrow `esrow' " . " `sep' " . " `sep' `sep' `sep' `sep'
+
                   }
               /*Categorical*/
                   if(`thisVarM'==1){
@@ -190,8 +192,8 @@ foreach x in head N `BVARloc'{
                                             /* tabulate does not allow pweight thus change to iweight */
                       loc taw `weight'
                       if "`weight'"=="pweight" loc taw iweight
-                      loc ifmis
-                      if "`missing'"=="" loc ifmis if `x'<.
+		      loc ifmis
+		      if "`missing'"=="" loc ifmis if `x'<.
                       qui ta `x' `by' [`taw'`exp'] `ifmis', matcell(mattab) `missing'
                       cap drop _`x'
                       svmat mattab, name(_`x')
@@ -220,11 +222,13 @@ foreach x in head N `BVARloc'{
                               loc srow`rc' $truename `sep' `y' `levlab' `sep'
                               loc esrow`rc' `srow`rc''
                           }
-                          if `Nmin'<`fewdata' loc row`rc' `row`rc'' "- (<`fewdata')" `sep'
-                          if `Nmin'>=`fewdata' loc row`rc' `row`rc'' %3.1f `=`n'/`N'*100' " (" %1.0f `=`n'' ")" `sep'
-                          loc erow`rc' `erow`rc'' "- (<`fewdata')" `sep'
-                          loc srow`rc' `srow`rc'' `=`n'/`N'*100' `sep' `=`n''  `sep' `sep' `sep' `sep'
-                          loc esrow`rc' `esrow`rc'' " . " `sep' " . " `sep' `sep' `sep' `sep'
+
+			if `Nmin'<`fewdata' loc row`rc' `row`rc'' "- (<`fewdata')" `sep'
+			if `Nmin'>=`fewdata' loc row`rc' `row`rc'' %3.1f `=`n'/`N'*100' " (" %1.0f `=`n'' ")" `sep'
+			loc erow`rc' `erow`rc'' "- (<`fewdata')" `sep'
+			loc srow`rc' `srow`rc'' `=`n'/`N'*100' `sep' `=`n''  `sep' `sep' `sep' `sep'
+			loc esrow`rc' `esrow`rc'' " . " `sep' " . " `sep' `sep' `sep' `sep'
+
                       }
                   }
               /* Continous : mean(sd) */
@@ -268,8 +272,8 @@ foreach x in head N `BVARloc'{
                           loc srow ${truename}IQR `sep' `sep'
                           loc esrow `srow'
                       }
-                      if 0<r(N) & r(N)<`fewdata' loc row `row' "< `fewdata' (- - -)" `sep'
                       if 0==r(N) | r(N)>=`fewdata' loc row `row' %2.1f `=r(p50)' " (" %2.1f `=r(p`ql')' "-" %2.1f `=r(p`qu')' ")" `sep'
+                      if 0<r(N) & r(N)<`fewdata' loc row `row' "<`fewdata' (- - -)"  `sep'
                       loc erow `erow' "<`fewdata' (- - -)" `sep'
                       loc srow `srow' `=r(p50)' `sep' `sep' `sep' `=r(p`ql')'  `sep'  `=r(p`qu')'  `sep'
                       loc esrow `esrow' " . " `sep' `sep' `sep' " . "  `sep' " . " `sep'
@@ -288,22 +292,22 @@ if(`i'==-1){
    loc row `sep' "`by'" `sep' `sep'
    loc seprow `sep' "-----" `sep' "----" `sep'
   }
-  if "`all'" != "" {
+  if "`all'" != ""  {
       loc row `row' "`head'" `sep'
       loc seprow `seprow' "----" `sep'
   }
   if `last'==1 & "`test'"=="TRUE"{
-    loc row `row' "P-value" `sep'
-    loc seprow `seprow' "----" `sep'
+      loc row `row' "P-value" `sep'
+      loc seprow `seprow' "----" `sep'
   }
-            if `last'==1 & "`balance'"=="TRUE"{
-    loc row `row' "StdDif" `sep'
-    loc seprow `seprow' "----" `sep'
+  if `last'==1 & "`balance'"=="TRUE"{
+      loc row `row' "StdDif" `sep'
+      loc seprow `seprow' "----" `sep'
   }
   di `row'
-            if "`saving'"!=""{
-                loc headoutrow `row'
-            }
+  if "`saving'"!=""{
+      loc headoutrow `row'
+  }
   di `seprow'
 }
 /* N line */
@@ -315,7 +319,7 @@ if(`i'==0){
   qui count
   loc n = r(N)
   if 0<`n' & `n'<`fewdata' loc fewdataflag 1
-  if "`all'" != ""{
+  if "`all'" != "" {
       loc row `row' %4.0f `=`n'' `sep'
       loc srow `srow' `sep' `=`n''
   }
@@ -335,12 +339,21 @@ if(`i'==0){
 }
 if(`i'>0){
   loc nm ="`x'"
+
+  /* add table names */
+  global truename `nm'
+  if "`varnames'" == "varnames"{
+	tablenames `nm', outdir($LocalOutDir)
+  }
+  /* end of table names */
+
+
   /*Boolean*/
   if(`thisVarM'==0){
       /* summarize does not allow pweight thus change to iweight */
                       loc suw `weight'
       if "`weight'"=="pweigth" loc suw iweight
-      cap su `x'  [`suw'`exp']
+      qui su `x'  [`suw'`exp']
       loc n = r(sum)
       loc N = r(sum_w)
       loc m = r(mean)
@@ -351,14 +364,14 @@ if(`i'>0){
       }
       if 0<`n' & `n'<`fewdata' loc fewdataflag 1
       if (`first'==1){
-          loc row `sep' "`nm' %(N)" `sep' "" `sep'
+          loc row `sep' "$truename %(N)" `sep' "" `sep'
           loc erow `row'
-          loc srow `nm' `sep' `sep'
+          loc srow $truename `sep' `sep'
           loc esrow `srow'
       }
       if "`all'" != "" {
           loc row `row' %3.1f `=`m' *100' " (" %1.0f `=`n'' ")" `sep'
-          loc erow `erow' "-  (<`fewdata')" `sep'
+          loc erow `erow' "- (<`fewdata')" `sep'
           loc srow `srow' `=`m' *100' `sep' `=`n'' `sep' `sep' `sep' `sep'
           loc esrow `esrow' " . " `sep' " . " `sep' `sep' `sep' `sep'
       }
@@ -388,7 +401,7 @@ if(`i'>0){
           loc row `row' %5.4f `=`mdif'' `sep'
           loc srow `srow' `=`mdif'' `sep'
       }
-      if(`fewdataflag' & "`all'" != ""){
+      if(`fewdataflag' & "`all'"!=""){
           loc row `erow'
           loc srow `esrow'
       }
@@ -401,8 +414,8 @@ if(`i'>0){
   /*Categorical*/
   if(`thisVarM'==1){
     loc rc=0
-                          /* tabulate does not allow pweight thus change to iweight */
-                      loc taw `weight'
+    /* tabulate does not allow pweight thus change to iweight */
+        loc taw `weight'
     if "`weight'"=="pweight" loc taw iweight
     loc ifmis
     if "`missing'"=="" loc ifmis if `x'<.
@@ -422,9 +435,9 @@ if(`i'>0){
       }
       if 0<`n' & `n'<`fewdata' loc fewdataflag 1
       if(`first'==1){
-              loc row`rc' `sep' "`nm'" `sep' "`y' `levlab'" `sep'
+              loc row`rc' `sep' "$truename" `sep' "`y' `levlab'" `sep'
               loc erow`rc' `row`rc''
-              loc srow`rc' `nm' `sep' `y' `levlab' `sep'
+              loc srow`rc' $truename `sep' `y' `levlab' `sep'
               loc esrow`rc' `srow`rc''
           }
       if "`all'" != "" {
@@ -434,12 +447,12 @@ if(`i'>0){
           loc esrow`rc' `esrow`rc'' " . " `sep' " . " `sep'
       }
       if("`test'"=="TRUE"){
-          if `rc'==1  {
+          if `rc'==1 {
               qui tab2 `x' `by', chi2
               loc row1 `row1' %5.4f `=r(p)' `sep'
               loc srow1 `srow1' `=r(p)' `sep'
           }
-          if `rc'>1  {
+          if `rc'>1{
               loc row`rc' `row`rc'' `sep'
               loc srow`rc' `srow`rc'' `sep'
           }
@@ -456,10 +469,10 @@ if(`i'>0){
                   }
               }
           }
-          if `rc' == `nlevels'{
+          if `rc' ==`nlevels'{
               if "`msdmax'" != ""{
                   foreach rcx of numlist 1/`rc'{
-                      loc mdif1 = max(`mdif1', `mdif`rcx'')
+                      loc mdif1=max(`mdif1', `mdif`rcx'')
                       if `rcx'!=1 loc mdif`rcx' .
                   }
               }
@@ -469,8 +482,7 @@ if(`i'>0){
               }
           }
       }
-
-    }
+  }
     foreach y of numlist 1/`rc'{
         if(`fewdataflag' & "`all'" != ""){
             loc row`y' `erow`y''
@@ -491,17 +503,17 @@ if(`i'>0){
    qui su `x'  [`suw'`exp']
    if 0<r(N) & r(N)<`fewdata' loc fewdataflag 1
    if(`first'==1){
-       loc row `sep' "`nm' mean(sd)" `sep' `sep'
+       loc row `sep' "$truename mean(sd)" `sep' `sep'
        loc erow `row'
-       loc srow `nm'mean `sep'
+       loc srow ${truename}mean `sep'
        loc esrow `srow'
    }
-   if "`all'" != "" {
-       loc row `row' %2.1f `=r(mean)' " (" %2.1f `=r(sd)' ")" `sep'
-       loc erow `erow' "<`fewdata' (-)" `sep'
-       loc srow `srow' `=r(mean)' `sep' `sep' `=r(sd)' `sep' `sep' `sep'
-       loc esrow `esrow' " . " `sep' `sep' " . " `sep' `sep' `sep'
-   }
+     if "`all'" != "" {
+         loc row `row' %2.1f `=r(mean)' " (" %2.1f `=r(sd)' ")" `sep'
+         loc erow `erow' "<`fewdata' (-)" `sep'
+         loc srow `srow' `=r(mean)' `sep' `sep' `=r(sd)' `sep' `sep' `sep'
+         loc esrow `esrow' " . " `sep' `sep' " . " `sep' `sep' `sep'
+     }
     if("`test'"=="TRUE"){
         qui reg `x' i.`by'  [`weight'`exp']
         loc row `row' %5.4f `=Ftail(e(df_m),e(df_r),e(F))' `sep'
@@ -540,17 +552,17 @@ if(`i'>0){
           qui su `x', detail
           if 0<r(N) & r(N)<`fewdata' loc fewdataflag 1
           if(`first'==1){
-              loc row `sep' "`nm' median(IQR)" `sep' `sep'
+              loc row `sep' "$truename median(IQR)" `sep' `sep'
               loc erow `row'
-              loc srow `nm'IQR `sep' `sep'
+              loc srow $truename IQR `sep' `sep'
               loc esrow `srow'
           }
-          if "`all'" != "" {
-              loc row `row' %2.1f `=r(p50)' " (" %2.1f `=r(p`ql')' "-" %2.1f `=r(p`qu')' ")" `sep'
-              loc erow `erow' "<`fewdata' (- - -)" `sep'
-              loc srow `srow' `=r(p50)' `sep' `sep' `sep' `=r(p`ql')' `sep' `=r(p`qu')' `sep'
-              loc esrow `esrow' " . " `sep' `sep' `sep' " . " `sep' " . " `sep'
-          }
+        if "`all'" != "" {
+            loc row `row' %2.1f `=r(p50)' " (" %2.1f `=r(p`ql')' "-" %2.1f `=r(p`qu')' ")" `sep'
+            loc erow `erow' "<`fewdata' (- - -)" `sep'
+            loc srow `srow' `=r(p50)' `sep' `sep' `sep' `=r(p`ql')' `sep' `=r(p`qu')' `sep'
+            loc esrow `esrow' " . " `sep' `sep' `sep' " . " `sep' " . " `sep'
+        }
           if("`test'"=="TRUE"){
               qui kwallis `x'  , by(`by')
               loc row `row' %5.4f `=chi2tail(r(df),r(chi2))' `sep'
@@ -591,7 +603,8 @@ if "`size'"!="" dis "#+LATEX: }"
 if "`landscape'"=="landscape" dis "#+LATEX: \end{landscape}"
 di _n(2)
 if "`saving'"!=""{
-    dis "Table content stored in : ~`saving'~."
+    dis "Table content stored in : \\ "
+	dis "~`saving'~."
     qui{
         drop _all
         set obs `outrow'
@@ -604,7 +617,7 @@ if "`saving'"!=""{
 		local no_vars = `r(k)'-1
 		destring V3 - V`no_vars', replace force
         drop string
-        cap tostring V2, replace
+        /*cap*/ tostring V2, replace
 		if "`append'" == ""{
 			save `saving', replace
 		}
@@ -618,6 +631,7 @@ if "`saving'"!=""{
 			duplicates drop
 
 			save `saving', replace
+
 		}
 
     }
