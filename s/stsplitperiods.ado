@@ -1,9 +1,3 @@
-/* SVN header
-$Date: 2019-01-08 10:46:22 +0100 (ti, 08 jan 2019) $
-$Revision: 136 $
-$Author: wnm6683 $
-$Id: stsplitPeriods.ado 136 2019-01-08 09:46:22Z wnm6683 $
-*/
 /* stsplitPeriods.ado */
 capture program drop stsplitPeriods
 program define stsplitPeriods, rclass
@@ -23,17 +17,18 @@ noisily quietly:{
     if ("`datestub'"=="") local datestub EndDate
     if ("`statusstub'"=="") local statusstub Status
     if "`if'"!="" keep `if'
-
+	
     preserve
     use `using', replace
-    if "`if'"!="" keep `if'
-    cap encode `split', g(`_split')
-    if _rc==0{
-        drop `split'
-        rename `_split' `split'
-    }
+	 if "`if'"!="" keep `if'
+	cap encode `split', g(`_split')
+	if _rc==0 {
+	   drop `split'
+	   rename `_split' `split'
+	}
     keep `id' `split' `splitstart' `splitend'
-    rename `splitstart' `_splitstart'
+ * list
+  rename `splitstart' `_splitstart'
     rename `splitend' `_splitend'
     duplicates drop
     save `dat1', replace
@@ -41,7 +36,9 @@ noisily quietly:{
     gen `newid' = `id' + strofreal(_n)
     /* Cartesian join */
     joinby `id' using `dat1', unmatched(master)
-    * bysort `id': drop if `_splitend'<`startdate' & _merge==3 & _N>1 & _n!=_N
+	*list
+  *  bysort `id': drop if `_splitend'<`startdate' & _merge==3 & _N>1 & _n!=_N
+*	list
     drop _merge
     replace `_splitstart'=0 if missing(`_splitstart')
     replace `_splitstart'=0 if `_splitend'<`startdate'
@@ -53,31 +50,38 @@ noisily quietly:{
     }
     format `lastend' `_splitstart' `_splitend' %d
     preserve
-    bysort `newid': keep if `startdate'>`lastend' & _N==1
-    gen `dat0flag'=1
+    bysort `newid': keep if `startdate'>`lastend' & _N==1 
+	gen `dat0flag'=1
+*	dis "ant"
+*	count
     save `dat0', replace
     restore
+*	gen lastend = `lastend'
+*	format lastend %d
     sort `newid' `startdate' `_splitend'
-    bysort `newid': drop if `_splitend'<`startdate' & _N!=_n
-    bysort `newid': drop if `_splitstart'>=`lastend' & _n>1
-    bysort `newid': drop if `_splitstart'==0 & missing(`_splitend') & _n>1
-    gen `splitbefore'=(`_splitend'<`startdate')
+ *   list `_splitstart' `_splitend' `startdate'
+	bysort `newid': drop if `_splitend'<`startdate' & _N!=_n
+    bysort `newid': drop if `_splitstart'>=`lastend' & _n>1 /* her */
+ *   list `_splitstart' `_splitend' `startdate'
+	bysort `newid': drop if `_splitstart'==0 & missing(`_splitend') & _n>1
+ *   list `_splitstart' `_splitend' `startdate'
+	gen `splitbefore'=(`_splitend'<`startdate')
     gen `splitduring'=(`_splitstart'<=`startdate' & `startdate'<=`_splitend' & !missing(`_splitend'))
-    gen `splitafter'=(`_splitstart'>`startdate' & `_splitstart'<`lastend')
+    gen `splitafter'=(`_splitstart'>`startdate' & `_splitstart'<`lastend') /* her */
     /* hvis perioden er før startdate */
     replace `_splitstart'=. if `splitduring'==0 & `splitafter'==0 & `splitbefore'==1
     replace `_splitend'=.   if `splitduring'==0 & `splitafter'==0 & `splitbefore'==1
     replace `split'=0       if `splitduring'==0 & `splitafter'==0 & `splitbefore'==1
     replace `splitduring'=2 if `splitafter'==1
     replace `splitduring'=3 if `splitbefore'==1
-    keep if `splitduring'==0 | `splitduring'==3 | `_splitstart'<`lastend'
+    keep if `splitduring'==0 | `splitduring'==3 | `_splitstart'<`lastend' /* her */
     sort `newid' `splitduring' `_splitstart' `startdate'
     duplicates drop  `newid' `_splitstart' `_splitend' `startdate', force
     sort `newid' `startdate' `_splitstart'
     bysort `newid': gen `N'=_N
     bysort `newid': gen `n'=_n
     preserve
-    replace `startdate' = `_splitstart'+1 if `splitduring'==2 & `_splitstart'<`lastend'
+    replace `startdate' = `_splitstart'+1 if `splitduring'==2 & `_splitstart'<`lastend' /* her*/ 
     replace `startdate' = `startdate'+1 if `splitduring'==1
     foreach i of local endpoints{
         replace `i'`statusstub'=0         if `i'`datestub'>`_splitend' & `split'>0 & !missing(`split') & !missing(`i'`datestub')
@@ -87,6 +91,7 @@ noisily quietly:{
     /* Dermed har vi alle behandlingsperioder */
     drop if `_splitstart'>=`lastend'
     save `dat1', replace
+  *  save dat1, replace
     restore
     /* Herefter mangler vi alle mellemperioder uden behandling */
     keep if `split'>0 & !missing(`split')
@@ -103,21 +108,23 @@ noisily quietly:{
     foreach i of local endpoints{
         replace `i'`statusstub'=0             if `i'`datestub'>`_splitstart' & !missing(`i'`datestub')
         *replace `i'`datestub'=`_splitstart'-1 if `i'`datestub'>=`_splitstart' & !missing(`i'`datestub')
-        replace `i'`datestub'=`_splitstart' if `i'`datestub'>=`_splitstart' & !missing(`i'`datestub')
+        replace `i'`datestub'=`_splitstart' if `i'`datestub'>=`_splitstart' & !missing(`i'`datestub')    
 		}
     gen `block'=2
-    replace `splitduring'=0
+	replace `splitduring'=0
     append using `dat1'
     save `dat1', replace
+  *  save dat11, replace
     restore
     preserve
     /* Dan ubehandlet efter sidste behandling*/
-    keep if `n'==`N' & `_splitend'<`lastend'
+    keep if `n'==`N' & `_splitend'<`lastend' /* her */
     replace `startdate'=`_splitend'+1
     replace `split'=0
     gen `block'=3
     append using `dat1'
     save `dat1', replace
+  *  save dat12, replace
     restore
     /* dan behandlingsfri perioder mellem behandlingsperioder */
     keep if `N'>1
@@ -125,13 +132,14 @@ noisily quietly:{
     gen `nextstart'=.
     by `newid': replace `nextstart'=`_splitstart'[_n+1]
     keep if !missing(`nextstart') & `nextstart' != `_splitend'+1
-    by `newid': replace `startdate' = `_splitend'+1
+    by `newid': replace `startdate' = `_splitend'  +1 
     foreach i of local endpoints{
-        replace `i'`statusstub'=0         if `i'`datestub'>`nextstart' & !missing(`i'`datestub')
-        replace `i'`datestub'=`nextstart' if `i'`datestub'>`nextstart' & !missing(`i'`datestub')
+        replace `i'`statusstub'=0           if `i'`datestub'>`nextstart' & !missing(`i'`datestub')
+        replace `i'`datestub'=`nextstart' /*-1*/ if `i'`datestub'>`nextstart' & !missing(`i'`datestub')  /* her */
     }
     gen `block'=4
     append using `dat1'
+*	gen block=`block'
     replace `block'=0
     foreach i of local endpoints{
         replace `i'`datestub'=.   if `i'`datestub'<`startdate'
@@ -143,9 +151,9 @@ noisily quietly:{
     drop if `block'==0
     append using `dat0'
     sort `id' `startdate'
+*	gen splitduring=`splitduring'
     by `id': replace `startdate'=`startdate'-1 if (_n>1 | `splitduring'==1) & `dat0flag'==. & `splitduring'!=0
-    sort `id' `startdate'
-
+	sort `id' `startdate'
     drop `lastend' `newid' `splitbefore' `splitduring' `splitafter' `_splitend' `_splitstart' ///
         `N' `n' `block' `nextstart' `dat0flag'
     if "`saving'"!=""{

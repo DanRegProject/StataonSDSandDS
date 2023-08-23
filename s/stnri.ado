@@ -4,26 +4,29 @@
 * Net reclassification statistics for survival data in a competing risks setting.
 *
 * Note that the function conditions on risk scores; accordingly, sampling variation
-* due to estimating risk scores from data is not taken into account. This is a 
+* due to estimating risk scores from data is not taken into account. This is a
 * non-issue when risk scores are known in advance.
 *
 * Author: 	Anders Gorst-Rasmussen, Aalborg University Hospital, Aalborg University
 *         	Email: agorstras@gmail.com
-* 
+*
 * Version history:
 *			:: 0.9 (10Feb2014)
+* log 20/12/16                      :: corrected to allow categorical with non-changed scores
 *****************************************************************************
+
+cap program drop stnri
 program stnri, eclass
 	syntax anything [if] [in],  At(numlist>=0 min=1 max=1)  [CATegorical Competing(varlist min=1 max=1) NOkey *]
 	version 11
 	st_is 2 analysis
-	
-	tempvar pseudo pred1 pred2 up down myd
+
+	tempvar pseudo pred1 pred2 up down myd updown
 
 	* Mark sample
 	marksample touse
 	quietly replace `touse' = 0 if _st==0
-	
+
 	* Check for obs
 	qui su `touse'
 	local nobs=`r(sum)'
@@ -59,8 +62,8 @@ program stnri, eclass
 		g `competing' = 0
 	}
 
-	qui {
-		* Pseudovalues 
+qui {
+    * Pseudovalues
 		stpcuminc `competing' if `touse', at(`at') gen(`pseudo')
 
 		if("`categorical'"=="") {
@@ -71,11 +74,13 @@ program stnri, eclass
 			predict `pred2'
 			g `up' = `pred2' > `pred1'
 			g `down' = `up'==0
+                        g `updown' = 1*`up'+ -1*`down'
 		}
 		else {
-		* Otherwise, use specified up/down reclassification	
+		* Otherwise, use specified up/down reclassification
 			g `up' = `1'==1
 			g `down' = `2'==1
+                g `updown' = 1*`up'+ -1*`down'
 		* Sanity check
 			quietly count if( `up'==1 & `down'==1)
 			local count=r(N)
@@ -89,30 +94,32 @@ program stnri, eclass
 	* Report "evaluable" reclassification (among those who are definite cases/non-cases @ at())
 	g `myd'=_d & _t <= `at'
 	di _n as txt "Evaluable reclassifications up to t=`at'"
-	label variable `up' " "
+        di as txt "Note this excludes non-events being censored before t=``at'"
+	label variable `updown' " "
 	label variable `myd' " "
 	cap label drop tmplabel
 	cap label drop tmpud
 	label define tmplabel 0 "Non-event" 1 "Event"
-	label define tmpud 0 "Down" 1 "Up"
+	label define tmpud -1 "Down" 0 "Equal" 1 "Up"
 	label values `myd' tmplabel
-	label values `up' tmpud
-	tab `up' `myd' if _t>`at' | `myd', col nokey wrap
+	label values `updown' tmpud
+	tab `updown' `myd' if _t>`at' | `myd', col nokey wrap
 
 	* Key for coefficient table
 	if("`nokey'"==""){
-		di _n as txt "Net Reclassification Improvement"  _n 
+		di _n as txt "Net Reclassification Improvement"  _n
 		di "{c TLC}{hline 65}{c TRC}"  _n "{c |} Key" _col(67) "{c |}" _n "{c LT}{hline 65}{c RT}"
-		di as txt "{c |} upI+" _col(14) "{it:P(reclassified up | event)}" _col(67) "{c |}" 
-		di as txt "{c |} upI-" _col(14) "{it:P(reclassified up | non-event)}" _col(67) "{c |}" 
-		di as txt "{c |} downI+" _col(14)"{it:P(reclassified down | event)}" _col(67) "{c |}" 
-		di as txt "{c |} downI-" _col(14)"{it:P(reclassified down | non-event)}" _col(67) "{c |}" 
-		di as txt "{c |} NRI+"  _col(14) "{it:(upI+) - (downI+)}" _col(67) "{c |}" 
-		di as txt "{c |} NRI-"  _col(14) "{it:(downI-) - (upI-)}" _col(67) "{c |}" 
-		di as txt "{c |} NRI"  _col(14)  "{it:(NRI+) + (NRI-)}" _col(67) "{c |}" 
+		di as txt "{c |} upI+" _col(14) "{it:P(reclassified up | event)}" _col(67) "{c |}"
+		di as txt "{c |} upI-" _col(14) "{it:P(reclassified up | non-event)}" _col(67) "{c |}"
+		di as txt "{c |} downI+" _col(14)"{it:P(reclassified down | event)}" _col(67) "{c |}"
+		di as txt "{c |} downI-" _col(14)"{it:P(reclassified down | non-event)}" _col(67) "{c |}"
+		di as txt "{c |} NRI+"  _col(14) "{it:(upI+) - (downI+)}" _col(67) "{c |}"
+		di as txt "{c |} NRI-"  _col(14) "{it:(downI-) - (upI-)}" _col(67) "{c |}"
+		di as txt "{c |} NRI"  _col(14)  "{it:(NRI+) + (NRI-)}" _col(67) "{c |}"
+		di as txt "{c |} PEup"  _col(14) "{it:P(event | reclassified up)}" _col(67) "{c |}"
+		di as txt "{c |} PEdown"  _col(14)  "{it:P(event | reclassified down)}" _col(67) "{c |}"
 		di as txt "{c BLC}{hline 65}{c BRC}" _n
 	}
 	* Bootstrap NRI calculations
 	bootstrap _b, `options': _nriboot `pseudo' `up' `down'
 end
-

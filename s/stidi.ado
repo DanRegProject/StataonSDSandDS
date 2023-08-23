@@ -4,24 +4,27 @@
 * Integrated discrimination improvement for survival data under competing risks
 *
 * Note that the function conditions on risk scores; accordingly, sampling variation
-* due to estimating risk scores from data is not taken into account. This is a 
+* due to estimating risk scores from data is not taken into account. This is a
 * non-issue when risk scores are known in advance.
 *
 * Author: 	Anders Gorst-Rasmussen, Aalborg University Hospital, Aalborg University
 *         	Email: agorstras@gmail.com
-* 
+*
 * Version history:
 *			:: 0.9 (10Feb2014)
 *****************************************************************************
+
+cap program drop stidi
+
 program stidi, eclass
-	syntax anything [if] [in],  At(numlist>=0 min=1 max=1)  [Compet(varlist min=1 max=1) *]
+	syntax anything [if] [in],  At(numlist>=0 min=1 max=1)  [Competing(varlist min=1 max=1) *]
 	version 11
 	st_is 2 analysis
-	
+
 	marksample touse
 
 	quietly replace `touse' = 0 if _st==0
-		
+
 	* Check for obs
 	qui su `touse'
 	local nobs=`r(sum)'
@@ -52,13 +55,13 @@ program stidi, eclass
 		exit
 	}
 
-	if("`compet'"=="") {
-		tempvar compet
-		g `compet' = 0
+	if("`competing'"=="") {
+		tempvar competing
+		g `competing' = 0
 	}
 
 	qui {
-		stpcuminc `compet', at(`at') gen(`pseudo')
+		stpcuminc `competing', at(`at') gen(`pseudo')
 		regress `pseudo' `1' if `touse'
 		predict `pred1'
 
@@ -67,4 +70,5 @@ program stidi, eclass
 	}
 
 	bootstrap _b, `options': _idiboot `pseudo' `pred1' `pred2'
+
 end
