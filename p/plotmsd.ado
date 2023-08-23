@@ -7,9 +7,9 @@ local cwd `"`c(pwd)'"'
 qui{
 preserve
 if "`if'" != "" keep `if'
-tokenize `varlist' 
+tokenize `varlist'
 local rows2 = subinstr("`rows'"," ",",",.)
-tempvar keepflag v1 name msdunw msdw i_after
+tempvar keepflag v1 name msdunw msdw iafter
 gen `keepflag'=0
 gen `v1'=trim(`1')
 foreach i of local rows{
@@ -40,8 +40,8 @@ replace `name' = subinstr(`name',"(", "{",.)
 replace `name' = subinstr(`name',")", "}",.)
 
 sort `msdunw' `name'
-gen `i_after' = _n
-labmask `i_after', values(`name')
+gen `iafter' = n
+labmask `iafter', values(`name')
 
 cap count
 loc numbRows = `r(N)'
@@ -50,8 +50,8 @@ if "`legend'"=="" loc legend legend(label(1 "Unweighted") label(2 "Weighted") po
 if "`labelopt'"=="" loc labelopt  angle(0) labsize(small)
 if "`vref'"=="" loc vref -0.1 0.1
 }
-scatter `i_after' `msdunw', msymbol(o) mcolor(black) || ///
-scatter `i_after' `msdw', msymbol(o) mcolor(black) mfcolor(white)   ||,   ///
+scatter `iafter' `msdunw', msymbol(o) mcolor(black) || ///
+scatter `iafter' `msdw', msymbol(o) mcolor(black) mfcolor(white)   ||,   ///
   xline(0, lcolor(gs13) lpattern(solid)) xline(`vref', lcolor(gs13) lpattern(dash)) yline(1/`numbRows', lcolor(gs13)) scheme(s1mono) ///
   xlabel(,format(%03.1f) `labelopt') ///
   ylabel(1/`numbRows', valuelabel `labelopt') ///
