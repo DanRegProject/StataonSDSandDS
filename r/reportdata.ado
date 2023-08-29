@@ -9,7 +9,7 @@ capture program drop reportData
 program define reportData, rclass
 version 13.0
 
-syntax anything , [if(string) using(string) by(string) format(string) sorting(string) headings(string)]
+syntax anything , [if(string) using(string) by(string) format(string) sorting(string) headings(string) headlev(string)]
 tempvar sstrata byvar catby
 loc varlist `anything'
 if "`using'"!="" {
@@ -76,6 +76,7 @@ loc head2 `head2'-|
 
   foreach byval in `levels' {
 	dis "" _n(2)
+	if "`headlev'"!="" dis "`headlev'", _c
 	if "`by'"!="" dis "`by' : `byval' "
 	dis "| `head' |"
 	dis "`head2'"
