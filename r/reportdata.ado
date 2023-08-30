@@ -12,12 +12,12 @@ version 13.0
 syntax anything , [if(string) using(string) by(string) format(string) sorting(string) headings(string) headlev(string)]
 tempvar sstrata byvar catby
 loc varlist `anything'
-if "`using'"!="" {
-	tempfile store
-	qui save `store', replace
-	use `using', clear
-}
-if "`if'"!="" keep if `if'
+
+tempfile store
+qui save `store', replace
+if "`using'"!="" use `using', clear
+
+if "`if'"!="" qui keep if `if'
 if "`by'`sorting'"!=""	sort `by' `sorting'
 qui{
 	loc bys
@@ -84,7 +84,7 @@ loc head2 `head2'-|
 *	if "`by'"!="" list `varlist' if `byvar' == "`byval'", divider noobs compress noheader
 *	if "`by'"=="" list `varlist' , divider noobs compress noheader
 preserve
-	qui	if "`by'"!="" keep if `byvar' == "`byval'"
+	if "`by'"!="" qui keep if `byvar' == "`byval'"
 	qui	count 
 	loc N=r(N)
 	foreach l of numlist 1/`N'{
@@ -102,7 +102,6 @@ preserve
 restore	
   }
 
-if "`using'"!="" {
-	use `store', clear
-}
+use `store', clear
+
 end
