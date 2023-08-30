@@ -64,11 +64,12 @@ local wcv = wordcount("`varlist'")
 local wch = wordcount("`heading'")
 if `wch'!=0 & `wcv'!=`wch' dis "Number of variables in varlist does not match heading labels"
 
-loc head
-if "`varlist'"!="" loc head = subinstr("`varlist'"," "," | ",.)
-if "`heading'"!="" loc head = subinstr("`heading'"," "," | ",.)
+if "`varlist'"!="" loc head = word("`varlist'",1)
+if "`heading'"!="" loc head = word("`heading'",1)
 loc head2 |
 foreach i of numlist 2/`wcv'{
+	if "`varlist'"!="" & "`heading'"=="" loc head = "`head'" + " | " + word("`varlist'",`i')
+	if "`heading'"!="" loc head = "`head'" + " | " + word("`heading'",`i')
 	loc head2  `head2'-+
 }
 loc head2 `head2'-|
