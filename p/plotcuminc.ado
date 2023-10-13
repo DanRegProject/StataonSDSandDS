@@ -81,22 +81,24 @@ if "`by'"!="" & strpos(`"`plotopt'"',"order")==0 {
 	keep `byvar0'
 	duplicates drop `byvar0', force
 	levelsof `byvar0', local(levels)
- 
-	loc order order(
-	count
-	foreach  i of numlist 1/`r(N)'{
-		 local lab = `byvar0'[`i']
-		 loc order `order' `i' `"`lab'"'
-	}
-	loc order `order')
-	if strpos(`"`plotopt'"',"legend(")>0{
-	loc plotopt = subinstr(`plotopt',"legend(","legend(`order'",.)
-	}
-	else{
-	loc plotopt `plotopt' legend(`order')
+
+	if strpos(`"`plotopt'"',"legend(off)")==0{
+		loc order order(
+		count
+		foreach  i of numlist 1/`r(N)'{
+			 local lab = `byvar0'[`i']
+			 loc order `order' `i' `"`lab'"'
+		}
+		loc order `order')
+		if strpos(`"`plotopt'"',"legend(")>0{
+		loc plotopt = subinstr(`plotopt',"legend(","legend(`order'",.)
+		}
+		else{
+		loc plotopt `plotopt' legend(`order')
+		}
 	}
 	restore
-}
+	}
 	if "`by'"!=""{
 			egen `byvar' = group(`by'), label missing
 			loc by `byvar'
