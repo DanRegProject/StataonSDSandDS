@@ -4,8 +4,16 @@ syntax varlist(min=2 max=3) [if], using(string) ROWs(string) [rowlabels(string) 
 
 * get current working dir
 local cwd `"`c(pwd)'"'
-qui{
 preserve
+qui{
+    tempfile newusing
+    use `using', clear
+    if "`if'" != "" keep `if'
+    save `newusing', replace
+}
+restore
+preserve
+qui{
 if "`if'" != "" keep `if'
 tokenize `varlist'
 local rows2 = subinstr("`rows'"," ",",",.)
@@ -22,7 +30,7 @@ if "`3'" == ""{
     }
 rename `3' `msdunw'
 keep `1' `2' `v1' `msdunw'
-merge 1:1 `1' `2' using `using', keepusing( `1' `2' `3')
+merge 1:1 `1' `2' using `newusing', keepusing( `1' `2' `3')
 keep if _merge==3
 drop _merge
 rename `3' `msdw'
@@ -40,7 +48,7 @@ replace `name' = subinstr(`name',"(", "{",.)
 replace `name' = subinstr(`name',")", "}",.)
 
 sort `msdunw' `name'
-gen `iafter' = n
+gen `iafter' = _n
 labmask `iafter', values(`name')
 
 cap count
