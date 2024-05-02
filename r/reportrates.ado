@@ -33,7 +33,7 @@ if "`sorting'" == ""{
 	sort `by' analysis Endpoint `strata'
 }
 else{
-	sort `sorting'
+	sort `by' `sorting'
 }
  capture confirm numeric variable `strata'
 if !_rc decode `strata', g(`sstrata')
