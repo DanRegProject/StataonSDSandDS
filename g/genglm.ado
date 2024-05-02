@@ -20,7 +20,7 @@ loc first 0
 loc Y `1'
 *save `indata', replace
 if "`append'"=="" loc first 1
-if "`ref'"=="" loc ref 1
+*if "`ref'"=="" loc ref 1
 if "`glmopt'"=="" loc glmopt nolog noshow
 if "`headlev'"=="" loc headlev **
 if "`engine'"=="" loc engine glm
@@ -44,6 +44,7 @@ dis `"- `engine' options: ~[`glmopt']~"'
 
 if "`show'"=="show"  dis "`headlev' Analysis : `label'" _n
 if "`at'"=="" loc at -1
+if "`ref'"!="" loc ref ib`ref'.
 foreach e in `anything'{
     if "`show'"=="show" {
         dis "`headlev'* Outcome `e' " _n
@@ -61,9 +62,9 @@ foreach e in `anything'{
             if "`tt'"!= "" dis "/Follow-up `tt'/" _n
             dis "#+BEGIN_EXAMPLE"
         }
-        if wordcount("`exposure'") == 1 capture noisily `engine' `outcomestub'`e'`tstr' ib`ref'.`thisexp' `adjust' [`weight'`exp'] `if'  , `glmopt'
+        if wordcount("`exposure'") == 1 capture noisily `engine' `outcomestub'`e'`tstr' `ref'`thisexp' `adjust' [`weight'`exp'] `if'  , `glmopt'
         else if `nexp'==1 capture noisily `engine' `outcomestub'`e'`tstr' `thisexp' `adjust' [`weight'`exp']  `if', `glmopt'
-        else capture noisily `engine' `outcomestub'`e'`tstr' ib`ref'.`thisexp' `adjust' [`weight'`exp']  `if', `glmopt'
+        else capture noisily `engine' `outcomestub'`e'`tstr' 'ref'`thisexp' `adjust' [`weight'`exp']  `if', `glmopt'
 if _rc==0{
 if "`postest'"!=""{
 /*
@@ -107,10 +108,12 @@ if "`show'"=="show" {
         if "`saving'" != "" & (wordcount("`exposure'")==1 | "`byexposure'"!="") {
 		qui levelsof `thisexp', local(grp)
 		loc ngrp : word count `grp'
+	if "`ref'"=="" loc grp 0
         foreach l in `grp'{
-            if `l'!=`ref'{
+	    if strpos("`ref'","`l'")==0{
                 if _rc==0 {
-                    lincom `l'.`thisexp'
+		    if "`ref'"=="" lincom `thisexp'
+                    else lincom `l'.`thisexp'
                     loc head`l' : label (`thisexp') `l'
                     if "`engine'"=="glm"{
                     if strpos("`glmopt'","link(log")>0 {
@@ -138,7 +141,7 @@ if "`show'"=="show" {
                 }
             }
             }
-            if _rc!=0 | `l'==`ref'{
+            if _rc!=0 | "`l'"=="`ref'"{
                 loc head`l' : label (`thisexp') `l'
                 loc GLM`l' = .
                 loc GLMl`l' = .
