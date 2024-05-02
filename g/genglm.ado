@@ -64,7 +64,7 @@ foreach e in `anything'{
         }
         if wordcount("`exposure'") == 1 capture noisily `engine' `outcomestub'`e'`tstr' `ref'`thisexp' `adjust' [`weight'`exp'] `if'  , `glmopt'
         else if `nexp'==1 capture noisily `engine' `outcomestub'`e'`tstr' `thisexp' `adjust' [`weight'`exp']  `if', `glmopt'
-        else capture noisily `engine' `outcomestub'`e'`tstr' 'ref'`thisexp' `adjust' [`weight'`exp']  `if', `glmopt'
+        else capture noisily `engine' `outcomestub'`e'`tstr' `ref'`thisexp' `adjust' [`weight'`exp']  `if', `glmopt'
 if _rc==0{
 if "`postest'"!=""{
 /*
