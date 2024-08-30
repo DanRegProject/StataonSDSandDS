@@ -16,7 +16,7 @@ $ID: $
 capture program drop reportFG
 program define reportFG, rclass
 version 13.0
-syntax [if] , using(string) [ by(string) evalue notrare format(string) sorting(string) ]
+syntax   , using(string) [ by(string) evalue notrare format(string) sorting(string) if(string)]
 tempfile store
 tempvar sstrata
 qui save `store', replace
