@@ -16,7 +16,7 @@ $ID: $
 capture program drop reportRates
 program define reportRates, rclass
 version 13.0
-syntax [if], using(string)   [by(string) strata(string) format(string) sorting(string) fewdata(string)]
+syntax , using(string)   [by(string) strata(string) format(string) sorting(string) fewdata(string) if(string)]
 tempfile store
 tempvar sstrata one
 qui save `store' , replace
