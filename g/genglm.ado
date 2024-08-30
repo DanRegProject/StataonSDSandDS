@@ -109,6 +109,7 @@ if "`show'"=="show" {
 		qui levelsof `thisexp', local(grp)
 		loc ngrp : word count `grp'
 	if "`ref'"=="" loc grp 0
+        if e(k)>1{ /* number of parameteres */
         foreach l in `grp'{
 	    if strpos("`ref'","`l'")==0{
                 if _rc==0 {
@@ -148,6 +149,7 @@ if "`show'"=="show" {
                 loc GLMu`l' = .
             }
         }
+       }
         loc ngrp1 =`ngrp'-1
         qui{
             preserve
