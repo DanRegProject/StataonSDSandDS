@@ -107,6 +107,12 @@ if "`show'"=="show" {
         }
         if "`saving'" != "" & (wordcount("`exposure'")==1 | "`byexposure'"!="") {
 		qui levelsof `thisexp', local(grp)
+		foreach l in `grp'{
+           	    loc head`l' : label (`thisexp') `l'
+           	    loc GLM`l' = .
+            	    loc GLMl`l' = .
+            	    loc GLMu`l' = .
+           	 }
 		loc ngrp : word count `grp'
 	if "`ref'"=="" loc grp 0
         if e(k)>1{ /* number of parameteres */
