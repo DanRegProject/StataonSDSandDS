@@ -151,9 +151,9 @@ foreach e in `endpoints' {
 						`byby' egen `keepflagmax' = max(`keepflagsum') if newobs == 0
 						`byby' replace `keepflagmax' = 0 if `keepflagmax'[_n-1] == `keepflagsum'[_n-1]
 						/* hvis der ikke er events mellem to FUP tider sættes FUP tideren til den forige observation startende fra toppen */
-						`byby' replace `CIstub'`e' = `CIstub'`e'[_n-1] if `keepflagsum'[_n-1] == `keepflagmax'[_n-1] | newobs[_n] == 1
-						`byby' replace `CIstub'`e'hi = `CIstub'`e'hi[_n-1] if `keepflagsum'[_n-1] == `keepflagmax'[_n-1] | newobs[_n] == 1
-						`byby' replace `CIstub'`e'lo = `CIstub'`e'lo[_n-1] if `keepflagsum'[_n-1] == `keepflagmax'[_n-1] | newobs[_n] == 1
+						`byby' replace `CIstub'`e' = `CIstub'`e'[_n-1] if  newobs[_n] == 1
+						`byby' replace `CIstub'`e'hi = `CIstub'`e'hi[_n-1]  newobs[_n] == 1
+						`byby' replace `CIstub'`e'lo = `CIstub'`e'lo[_n-1]  newobs[_n] == 1
 						*save F:\Projekter\FSEID00002177\t2177_009_LM_ERISTA_VHD_LOWSCORE\tempdata\Stata\testdata.dta, replace
                         *`byby' replace `keepflag' =1 if (_n==_N & _N>1 & `CIstub'`e'time[_n-1]<`t')
 					*`byby' replace CItime =`t' if (_n==1 & `t'<= `CIstub'`e'time)
@@ -184,7 +184,7 @@ foreach e in `endpoints' {
                     loc N=r(N)
 
                     foreach i of numlist 1/`N'{
-                        if atRisk[`i']==0 | atRisk[`i']>=`fewdata' noi dis " | " `byformat' `byvar'[`i'] " |  `e' | " CItime[ `i'] " | "  atRisk[`i'] " | " `format' `CIstub'`e'[`i'] " | ("  `format' `CIstub'`e'lo[`i'] "-" `format' `CIstub'`e'hi[`i'] ") |"
+                        if atRisk[`i']==0 | atRisk[`i']>=`fewdata' noi dis "| " `byformat' `byvar'[`i'] " |  `e' | " CItime[ `i'] " | "  atRisk[`i'] " | " `format' `CIstub'`e'[`i'] " | ("  `format' `CIstub'`e'lo[`i'] "-" `format' `CIstub'`e'hi[`i'] ") |"
 						
 						if "`saving'" != ""{
 							if atRisk[`i']==0{
@@ -192,7 +192,7 @@ foreach e in `endpoints' {
 							}
 						}
 						
-                        if atRisk[`i']>0 & atRisk[`i']<`fewdata' noi dis " | " `byformat' `byvar'[`i'] " |  `e' | " CItime[ `i'] " | <`fewdata' | " `format' `CIstub'`e'[`i'] " | ("  `format' `CIstub'`e'lo[`i'] "-" `format' `CIstub'`e'hi[`i'] ") |"
+                        if atRisk[`i']>0 & atRisk[`i']<`fewdata' noi dis "| " `byformat' `byvar'[`i'] " |  `e' | " CItime[ `i'] " | <`fewdata' | " `format' `CIstub'`e'[`i'] " | ("  `format' `CIstub'`e'lo[`i'] "-" `format' `CIstub'`e'hi[`i'] ") |"
                     }
                 }
 
