@@ -151,7 +151,7 @@ foreach e in `endpoints' {
 						`byby' egen `keepflagmax' = max(`keepflagsum') if newobs == 0
 						`byby' replace `keepflagmax' = 0 if `keepflagmax'[_n-1] == `keepflagsum'[_n-1]
 						/* hvis der ikke er events mellem to FUP tider sættes FUP tideren til den forige observation startende fra toppen */
-						`byby' replace `CIstub'`e' = `CIstub'`e'[_n-1] if  newobs[_n] == 1
+						`byby' replace `CIstub'`e' = `CIstub'`e'[_n-1] if  newobs[_n] == 1 & `CIstub'`e'[_n-1]<.
 						`byby' replace `CIstub'`e'hi = `CIstub'`e'hi[_n-1]  newobs[_n] == 1
 						`byby' replace `CIstub'`e'lo = `CIstub'`e'lo[_n-1]  newobs[_n] == 1
 						*save F:\Projekter\FSEID00002177\t2177_009_LM_ERISTA_VHD_LOWSCORE\tempdata\Stata\testdata.dta, replace
