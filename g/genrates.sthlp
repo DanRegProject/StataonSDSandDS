@@ -1,96 +1,167 @@
-{smcl}
-{* *! version 1.0  5 Feb 2018}{...}
-{vieweralsosee "" "--"}{...}
-{vieweralsosee "Install command2" "ssc install command2"}{...}
-{vieweralsosee "Help command2 (if installed)" "help command2"}{...}
-{viewerjumpto "Syntax" "genRates##syntax"}{...}
-{viewerjumpto "Description" "genRates##description"}{...}
-{viewerjumpto "Options" "genRates##options"}{...}
-{viewerjumpto "Remarks" "genRates##remarks"}{...}
-{viewerjumpto "Examples" "genRates##examples"}{...}
-{title:Title}
-{phang}
-{bf:genRates} {hline 2} <insert title here>
+genRates — Generate incidence rates at specified follow-up times for one or more endpoints
+--------------------------------------------------------------------------
 
-{marker syntax}{...}
-{title:Syntax}
-{p 8 17 2}
-{cmdab:genRates}
-[iweight
-aweight
-pweight
-fweight]
-[if]
-[{cmd:,}
-{it:options}]
+Syntax
+-------
+genRates [iweight|aweight|pweight|fweight] [if] , ///
+    ENDPoints(string) ///
+    at(numlist) ///
+    Origin(string) ///
+    Enter(string) ///
+    Scale(string) ///
+    Per(string) ///
+    SAVing(string) ///
+    [BY(string) id(string) append label(string)]
 
-{synoptset 20 tabbed}{...}
-{synopthdr}
-{synoptline}
-{syntab:Main}
-{synopt:{opt endp:oints(string)}} .{p_end}
-{synopt:{opt at(numlist)}} .{p_end}
-{synopt:{opt o:rigin(string)}} .{p_end}
-{synopt:{opt e:nter(string)}} .{p_end}
-{synopt:{opt s:cale(string)}} .{p_end}
-{synopt:{opt p:er(string)}} .{p_end}
-{synopt:{opt by(string)}} .{p_end}
-{synopt:{opt sav:ing(string)}} .{p_end}
-{synopt:{opt id(string)}} .{p_end}
-{synopt:{opt append}} .{p_end}
-{synoptline}
-{p2colreset}{...}
-{p 4 6 2}
+Short description
+-----------------
+Compute incidence (or event) rates at a set of prespecified follow‑up times
+for one or more endpoints. genRates stsets the data for each endpoint,
+calls strate to compute stratum-specific rates, and collects the results
+in a single data file that is saved to disk.
 
-{marker description}{...}
-{title:Description}
-{pstd}
-{cmd:genRates} does ... <insert description>
+Required components
+-------------------
+- ENDPoints(string)
+    Space separated list of endpoint name prefixes. For each endpoint
+    name e supplied in ENDPoints, genRates expects two variables in the
+    dataset: eEndDate (the event or censoring date) and eStatus (the
+    failure indicator, typically 1 = event, 0 = censored). Example:
+    ENDPoints(cvd stroke) will use cvdEndDate, cvdStatus, strokeEndDate,
+    strokeStatus.
 
-{marker options}{...}
-{title:Options}
-{dlgtab:Main}
-{phang}
-{opt endp:oints(string)}  
+- at(numlist)
+    List of follow‑up times (numeric) at which rates are to be computed.
+    These are multiplied by Scale() and added to Origin() to produce
+    the exit (stop‑follow‑up) time for each analysis run. Example:
+    at(0 1 5 10) or at(0(1)5).
 
-{phang}
-{opt at(numlist)}  
+- Origin(string)
+    Name of the origin time variable. Exit times are computed as
+    origin + (t * scale) for each t in at().
 
-{phang}
-{opt o:rigin(string)}  
+- Enter(string)
+    Name of the entry (delayed entry) time variable passed to stset.
 
-{phang}
-{opt e:nter(string)}  
+- Scale(string)
+    Numeric scale applied to the at() values when computing exit times.
+    If your origin and end date variables are in days and you want rates
+    at t years, set scale=365.25 and supply at() in years.
 
-{phang}
-{opt s:cale(string)}  
+- Per(string)
+    The denominator used when calling strate (e.g., per(1000) for rates
+    per 1000 person‑years). This option is passed directly to strate.
 
-{phang}
-{opt p:er(string)}  
+- SAVing(string)
+    File path (filename) to save the combined results dataset. The
+    program writes a Stata .dta file with the merged rate tables.
 
-{phang}
-{opt by(string)}  
+Optional components
+-------------------
+- BY(string)
+    Space separated list of grouping variables (strata). If BY() is
+    omitted an internal variable is created so that overall rates (no
+    grouping) are returned.
 
-{phang}
-{opt sav:ing(string)}  
+- id(string)
+    Identifier variable to supply to stset id(). Useful for panel/cluster
+    follow-up or repeated observations for the same subject.
 
-{phang}
-{opt id(string)}  
+- append
+    If specified, genRates will append the current run's results to the
+    dataset named in SAVing(). Use this when building a cumulative
+    results file across separate genRates calls. The SAVing() file must
+    already exist (or created earlier in the same session).
 
-{phang}
-{opt append}  
+- label(string)
+    Analysis label saved in the output dataset in the variable
+    analysis. Useful to distinguish multiple runs.
 
+- Weights
+    Supports iweight, aweight, pweight, fweight (supplied before the
+    comma like most Stata commands).
 
-{marker examples}{...}
-{title:Examples}
+- if
+    Standard if qualifier to restrict the sample.
 
-{phang} <insert example command>
+Output
+------
+genRates runs, for each endpoint and for each t in at(), a call to stset
+followed by strate. The per-call strate output is saved to a temporary
+dataset, then combined across times and endpoints. The final saved file
+(SAVing) contains:
+- all variables generated by the strate command,
+- Endpoint: string with the endpoint name used for that run,
+- FUP: the t value from at() (follow‑up time),
+- analysis: the label supplied via label(),
+- strata: an internally generated combined strata identifier (the BY
+  variables are removed and their decoded/string versions used for
+  building a combined strata description).
 
-{title:Author}
-{p}
-{p_end}
-{pstd}
-Flemming Skj�th, Aalborg Thrombosis Research Unit. Aalborg University/Aalborg Universityhospital.
+Notes and conventions
+---------------------
+- Variable naming convention for endpoints: for each endpoint prefix e,
+  genRates expects variables named eEndDate and eStatus. If these are not
+  present, genRates will fail for that endpoint.
 
-{pstd}
-Email {browse "mailto:fls@rn.dk":fls@rn.dk}
+- Time units and scale: exit time is computed as origin + t*scale.
+  Therefore t should be specified in the unit you want (for example,
+  years), and scale should convert that unit into the same units used by
+  origin and EndDate variables. For example, if EndDate/origin are
+  Stata daily dates and you want rates at 1 and 5 years, use
+  Scale(365.25) and at(1 5).
+
+- strate dependency: genRates uses the command strate to compute rates.
+  Ensure that strate is available in your Stata installation (it may be
+  part of a contributed package or a particular Stata release).
+
+- Missing values: records with missing eEndDate will be excluded for
+  that endpoint (see how the code sets up the if qualifier). Make sure
+  your endpoint variables are coded correctly.
+
+- BY variables are converted to strings/decoded before being combined
+  into the internal strata label so that numeric categorical variables
+  remain interpretable in the saved results.
+
+- append option: when using append, genRates expects the file named in
+  SAVing() to exist and to have the same structure (variable names/types)
+  as the data being appended.
+
+Examples
+--------
+Basic example — compute rates for endpoints "cvd" and "stroke" at 1, 5
+and 10 years, with daily date variables, saving results to rates.dta:
+. genRates , ENDPoints(cvd stroke) at(1 5 10) Origin(birthdate) ///
+    Enter(study_entry) Scale(365.25) Per(1000) SAVing("rates.dta") ///
+    BY(sex agegroup) id(person_id) label("CVD and stroke rates")
+
+Compute overall rates (no BY) for a single endpoint "death" at 0, 1
+and 2 years:
+. genRates , ENDPoints(death) at(0 1 2) Origin(entry_date) Enter(entry_date) ///
+    Scale(1) Per(1000) SAVing("death_rates.dta") label("Death rates")
+
+Append another set of analyses (same structure) to an existing file:
+. genRates , ENDPoints(cvd) at(0(1)5) Origin(birthdate) Enter(study_entry) ///
+    Scale(365.25) Per(1000) SAVing("rates.dta") BY(sex) id(pid) append ///
+    label("Additional cvd rates")
+
+Author
+------
+Flemming Skjøth
+(Original creator of genRates.ado — see header of genRates.ado for version
+and changelog details.)
+
+See also
+--------
+stset, strate, stptime, sts list, stsum
+
+--------------------------------------------------------------------------
+
+Notes for maintainers
+---------------------
+- The ado relies on temporary files tmprate1 and tmprate2 and on the
+  global presence of the command strate. Any change to how strate
+  produces output variables may require updating genRates to match.
+- The program constructs variable names by concatenating endpoint prefix
+  and "EndDate" / "Status" — changing endpoint variable naming
+  conventions will require corresponding update here.
